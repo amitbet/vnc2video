@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"sync"
 )
 
 var DefaultServerMessages = []ServerMessage{
@@ -21,41 +22,58 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 		conn.Close()
 		return nil, err
 	}
+
 	if err := cfg.VersionHandler(cfg, conn); err != nil {
 		conn.Close()
 		return nil, err
 	}
+
 	if err := cfg.SecurityHandler(cfg, conn); err != nil {
 		conn.Close()
 		return nil, err
 	}
+
 	if err := cfg.ClientInitHandler(cfg, conn); err != nil {
 		conn.Close()
 		return nil, err
 	}
+
 	if err := cfg.ServerInitHandler(cfg, conn); err != nil {
 		conn.Close()
 		return nil, err
 	}
-	/*
-	   // Send client-to-server messages.
-	   encs := conn.encodings
-	   if err := conn.SetEncodings(encs); err != nil {
-	       conn.Close()
-	       return nil, Errorf("failure calling SetEncodings; %s", err)
-	   }
-	   pf := conn.pixelFormat
-	   if err := conn.SetPixelFormat(pf); err != nil {
-	       conn.Close()
-	       return nil, Errorf("failure calling SetPixelFormat; %s", err)
-	   }
-	*/
+
 	return conn, nil
 }
 
 var _ Conn = (*ClientConn)(nil)
 
+func (c *ClientConn) Conn() net.Conn {
+	return c.c
+}
+
+func (c *ClientConn) SetProtoVersion(pv string) {
+	c.protocol = pv
+}
+
+func (c *ClientConn) SetEncodings(encs []EncodingType) error {
+
+	msg := &SetEncodings{
+		MsgType:   SetEncodingsMsgType,
+		EncNum:    uint16(len(encs)),
+		Encodings: encs,
+	}
+
+	return msg.Write(c)
+}
+
+func (c *ClientConn) UnreadByte() error {
+	return c.br.UnreadByte()
+}
+
 func (c *ClientConn) Flush() error {
+	c.m.Lock()
+	defer c.m.Unlock()
 	return c.bw.Flush()
 }
 
@@ -68,6 +86,8 @@ func (c *ClientConn) Read(buf []byte) (int, error) {
 }
 
 func (c *ClientConn) Write(buf []byte) (int, error) {
+	c.m.Lock()
+	defer c.m.Unlock()
 	return c.bw.Write(buf)
 }
 
@@ -83,6 +103,13 @@ func (c *ClientConn) DesktopName() string {
 }
 func (c *ClientConn) PixelFormat() *PixelFormat {
 	return c.pixelFormat
+}
+func (c *ClientConn) SetDesktopName(name string) {
+	c.desktopName = name
+}
+func (c *ClientConn) SetPixelFormat(pf *PixelFormat) error {
+	c.pixelFormat = pf
+	return nil
 }
 func (c *ClientConn) Encodings() []Encoding {
 	return c.encodings
@@ -110,7 +137,7 @@ type ClientConn struct {
 	bw       *bufio.Writer
 	cfg      *ClientConfig
 	protocol string
-
+	m        sync.Mutex
 	// If the pixel format uses a color map, then this is the color
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
@@ -151,6 +178,7 @@ func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 		br:          bufio.NewReader(c),
 		bw:          bufio.NewWriter(c),
 		encodings:   cfg.Encodings,
+		quit:        make(chan struct{}),
 		pixelFormat: cfg.PixelFormat,
 	}, nil
 }
@@ -179,7 +207,7 @@ type SetPixelFormat struct {
 }
 
 func (msg *SetPixelFormat) Type() ClientMessageType {
-	return msg.MsgType
+	return SetPixelFormatMsgType
 }
 
 func (msg *SetPixelFormat) Write(c Conn) error {
@@ -201,7 +229,7 @@ func (msg *SetPixelFormat) Write(c Conn) error {
 }
 
 func (msg *SetPixelFormat) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, msg)
+	return binary.Read(c, binary.BigEndian, &msg)
 }
 
 // SetEncodings holds the wire format message, sans encoding-type field.
@@ -209,34 +237,33 @@ type SetEncodings struct {
 	MsgType   ClientMessageType
 	_         [1]byte // padding
 	EncNum    uint16  // number-of-encodings
-	Encodings []Encoding
+	Encodings []EncodingType
 }
 
 func (msg *SetEncodings) Type() ClientMessageType {
-	return msg.MsgType
+	return SetEncodingsMsgType
 }
 
 func (msg *SetEncodings) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Read(c, binary.BigEndian, &msg.MsgType); err != nil {
 		return err
 	}
-
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
 		return err
 	}
 
-	if err := binary.Read(c, binary.BigEndian, msg.EncNum); err != nil {
+	if err := binary.Read(c, binary.BigEndian, &msg.EncNum); err != nil {
 		return err
 	}
-
-	var enc Encoding
+	var enc EncodingType
 	for i := uint16(0); i < msg.EncNum; i++ {
 		if err := binary.Read(c, binary.BigEndian, &enc); err != nil {
 			return err
 		}
 		msg.Encodings = append(msg.Encodings, enc)
 	}
+	c.SetEncodings(msg.Encodings)
 	return nil
 }
 
@@ -275,15 +302,18 @@ type FramebufferUpdateRequest struct {
 }
 
 func (msg *FramebufferUpdateRequest) Type() ClientMessageType {
-	return msg.MsgType
+	return FramebufferUpdateRequestMsgType
 }
 
 func (msg *FramebufferUpdateRequest) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, msg)
+	return binary.Read(c, binary.BigEndian, &msg)
 }
 
 func (msg *FramebufferUpdateRequest) Write(c Conn) error {
-	return binary.Write(c, binary.BigEndian, msg)
+	if err := binary.Write(c, binary.BigEndian, msg); err != nil {
+		return err
+	}
+	return c.Flush()
 }
 
 // KeyEvent holds the wire format message.
@@ -295,15 +325,18 @@ type KeyEvent struct {
 }
 
 func (msg *KeyEvent) Type() ClientMessageType {
-	return msg.MsgType
+	return KeyEventMsgType
 }
 
 func (msg *KeyEvent) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, msg)
+	return binary.Read(c, binary.BigEndian, &msg)
 }
 
 func (msg *KeyEvent) Write(c Conn) error {
-	return binary.Write(c, binary.BigEndian, msg)
+	if err := binary.Write(c, binary.BigEndian, msg); err != nil {
+		return err
+	}
+	return c.Flush()
 }
 
 // PointerEventMessage holds the wire format message.
@@ -314,15 +347,18 @@ type PointerEvent struct {
 }
 
 func (msg *PointerEvent) Type() ClientMessageType {
-	return msg.MsgType
+	return PointerEventMsgType
 }
 
 func (msg *PointerEvent) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, msg)
+	return binary.Read(c, binary.BigEndian, &msg)
 }
 
 func (msg *PointerEvent) Write(c Conn) error {
-	return binary.Write(c, binary.BigEndian, msg)
+	if err := binary.Write(c, binary.BigEndian, msg); err != nil {
+		return err
+	}
+	return c.Flush()
 }
 
 // ClientCutText holds the wire format message, sans the text field.
@@ -334,11 +370,11 @@ type ClientCutText struct {
 }
 
 func (msg *ClientCutText) Type() ClientMessageType {
-	return msg.MsgType
+	return ClientCutTextMsgType
 }
 
 func (msg *ClientCutText) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Read(c, binary.BigEndian, &msg.MsgType); err != nil {
 		return err
 	}
 
@@ -347,7 +383,7 @@ func (msg *ClientCutText) Read(c Conn) error {
 		return err
 	}
 
-	if err := binary.Read(c, binary.BigEndian, msg.Length); err != nil {
+	if err := binary.Read(c, binary.BigEndian, &msg.Length); err != nil {
 		return err
 	}
 
@@ -387,7 +423,8 @@ func (msg *ClientCutText) Write(c Conn) error {
 // ListenAndHandle listens to a VNC server and handles server messages.
 func (c *ClientConn) Handle() error {
 	var err error
-
+	var wg sync.WaitGroup
+	wg.Add(2)
 	defer c.Close()
 
 	serverMessages := make(map[ServerMessageType]ServerMessage)
@@ -395,41 +432,50 @@ func (c *ClientConn) Handle() error {
 		serverMessages[m.Type()] = m
 	}
 
-clientLoop:
-	for {
-		select {
-		case msg := <-c.cfg.ServerMessageCh:
-			if err = msg.Write(c); err != nil {
-				return err
+	go func() error {
+		defer wg.Done()
+		for {
+			select {
+			case msg := <-c.cfg.ClientMessageCh:
+				if err = msg.Write(c); err != nil {
+					return err
+				}
+			case <-c.quit:
+				return nil
 			}
-		case <-c.quit:
-			break clientLoop
 		}
-	}
+	}()
 
-serverLoop:
-	for {
-		select {
-		case <-c.quit:
-			break serverLoop
-		default:
-			var messageType ServerMessageType
-			if err = binary.Read(c, binary.BigEndian, &messageType); err != nil {
-				break serverLoop
+	go func() error {
+		defer wg.Done()
+		for {
+			select {
+			case <-c.quit:
+				return nil
+			default:
+				var messageType ServerMessageType
+				if err = binary.Read(c, binary.BigEndian, &messageType); err != nil {
+					return err
+				}
+				if err := c.UnreadByte(); err != nil {
+					return err
+				}
+				msg, ok := serverMessages[messageType]
+				if !ok {
+					return fmt.Errorf("unknown message-type: %v", messageType)
+				}
+				if err = msg.Read(c); err != nil {
+					return err
+				}
+				if c.cfg.ServerMessageCh == nil {
+					continue
+				}
+				c.cfg.ServerMessageCh <- msg
 			}
-			msg, ok := serverMessages[messageType]
-			if !ok {
-				break serverLoop
-			}
-			if err = msg.Read(c); err != nil {
-				break serverLoop
-			}
-			if c.cfg.ServerMessageCh == nil {
-				continue
-			}
-			c.cfg.ServerMessageCh <- msg
 		}
-	}
+	}()
+	wg.Wait()
+	fmt.Printf("tttt\n")
 	return err
 }
 
@@ -440,7 +486,7 @@ type ClientHandler func(*ClientConfig, Conn) error
 type ClientConfig struct {
 	VersionHandler    ClientHandler
 	SecurityHandler   ClientHandler
-	SecurityHandlers  []ClientHandler
+	SecurityHandlers  []SecurityHandler
 	ClientInitHandler ClientHandler
 	ServerInitHandler ClientHandler
 	Encodings         []Encoding

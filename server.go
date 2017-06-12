@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"sync"
 )
 
 var DefaultClientMessages = []ClientMessage{
@@ -17,9 +18,43 @@ var DefaultClientMessages = []ClientMessage{
 	&ClientCutText{},
 }
 
+type ServerInit struct {
+	FBWidth, FBHeight uint16
+	PixelFormat       PixelFormat
+	NameLength        uint32
+	NameText          []byte
+}
+
 var _ Conn = (*ServerConn)(nil)
 
+func (c *ServerConn) UnreadByte() error {
+	return c.br.UnreadByte()
+}
+
+func (c *ServerConn) Conn() net.Conn {
+	return c.c
+}
+
+func (c *ServerConn) SetEncodings(encs []EncodingType) error {
+	encodings := make(map[EncodingType]Encoding)
+	for _, enc := range c.cfg.Encodings {
+		encodings[enc.Type()] = enc
+	}
+	for _, encType := range encs {
+		if enc, ok := encodings[encType]; ok {
+			c.encodings = append(c.encodings, enc)
+		}
+	}
+	return nil
+}
+
+func (c *ServerConn) SetProtoVersion(pv string) {
+	c.protocol = pv
+}
+
 func (c *ServerConn) Flush() error {
+	c.m.Lock()
+	defer c.m.Unlock()
 	return c.bw.Flush()
 }
 
@@ -41,6 +76,8 @@ func (c *ServerConn) Read(buf []byte) (int, error) {
 }
 
 func (c *ServerConn) Write(buf []byte) (int, error) {
+	c.m.Lock()
+	defer c.m.Unlock()
 	return c.bw.Write(buf)
 }
 
@@ -56,6 +93,13 @@ func (c *ServerConn) DesktopName() string {
 }
 func (c *ServerConn) PixelFormat() *PixelFormat {
 	return c.pixelFormat
+}
+func (c *ServerConn) SetDesktopName(name string) {
+	c.desktopName = name
+}
+func (c *ServerConn) SetPixelFormat(pf *PixelFormat) error {
+	c.pixelFormat = pf
+	return nil
 }
 func (c *ServerConn) Encodings() []Encoding {
 	return c.encodings
@@ -94,20 +138,20 @@ const (
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
 type FramebufferUpdate struct {
 	MsgType ServerMessageType
-	NumRect uint16      // number-of-rectangles
 	_       [1]byte     // pad
+	NumRect uint16      // number-of-rectangles
 	Rects   []Rectangle // rectangles
 }
 
 func (msg *FramebufferUpdate) Type() ServerMessageType {
-	return msg.MsgType
+	return FramebufferUpdateMsgType
 }
 
 func (msg *FramebufferUpdate) Read(c Conn) error {
 	if err := binary.Read(c, binary.BigEndian, msg.MsgType); err != nil {
 		return err
 	}
-
+	fmt.Printf("qqqqq\n")
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
 		return err
@@ -116,17 +160,15 @@ func (msg *FramebufferUpdate) Read(c Conn) error {
 	if err := binary.Read(c, binary.BigEndian, msg.NumRect); err != nil {
 		return err
 	}
-	/*
-		// Extract rectangles.
-		rects := make([]Rectangle, msg.NumRect)
-		for i := uint16(0); i < msg.NumRect; i++ {
-			rect := NewRectangle(c)
-			if err := rect.Read(c); err != nil {
-				return err
-			}
-			msg.Rects = append(msg.Rects, *rect)
+	msg.Rects = make([]Rectangle, msg.NumRect)
+	for i := uint16(0); i < msg.NumRect; i++ {
+		rect := NewRectangle()
+		if err := rect.Read(c); err != nil {
+			return err
 		}
-	*/
+		msg.Rects = append(msg.Rects, *rect)
+	}
+
 	return nil
 }
 
@@ -141,13 +183,11 @@ func (msg *FramebufferUpdate) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.NumRect); err != nil {
 		return err
 	}
-	/*
-		for _, rect := range msg.Rects {
-			if err := rect.Write(c); err != nil {
-				return err
-			}
+	for _, rect := range msg.Rects {
+		if err := rect.Write(c); err != nil {
+			return err
 		}
-	*/
+	}
 	return c.Flush()
 }
 
@@ -157,7 +197,7 @@ type ServerConn struct {
 	br       *bufio.Reader
 	bw       *bufio.Writer
 	protocol string
-
+	m        sync.Mutex
 	// If the pixel format uses a color map, then this is the color
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
@@ -190,7 +230,7 @@ type ServerHandler func(*ServerConfig, Conn) error
 type ServerConfig struct {
 	VersionHandler    ServerHandler
 	SecurityHandler   ServerHandler
-	SecurityHandlers  []ServerHandler
+	SecurityHandlers  []SecurityHandler
 	ClientInitHandler ServerHandler
 	ServerInitHandler ServerHandler
 	Encodings         []Encoding
@@ -199,35 +239,46 @@ type ServerConfig struct {
 	ClientMessageCh   chan ClientMessage
 	ServerMessageCh   chan ServerMessage
 	ClientMessages    []ClientMessage
+	DesktopName       []byte
+	Height            uint16
+	Width             uint16
 }
 
 func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
 	if cfg.ClientMessageCh == nil {
 		return nil, fmt.Errorf("ClientMessageCh nil")
 	}
+
 	if len(cfg.ClientMessages) == 0 {
 		return nil, fmt.Errorf("ClientMessage 0")
 	}
+
 	return &ServerConn{
 		c:           c,
 		br:          bufio.NewReader(c),
 		bw:          bufio.NewWriter(c),
 		cfg:         cfg,
+		quit:        make(chan struct{}),
 		encodings:   cfg.Encodings,
 		pixelFormat: cfg.PixelFormat,
+		fbWidth:     cfg.Width,
+		fbHeight:    cfg.Height,
 	}, nil
 }
 
 func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 	for {
+
 		c, err := ln.Accept()
 		if err != nil {
 			continue
 		}
+
 		conn, err := NewServerConn(c, cfg)
 		if err != nil {
 			continue
 		}
+
 		if err := cfg.VersionHandler(cfg, conn); err != nil {
 			conn.Close()
 			continue
@@ -237,62 +288,80 @@ func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 			conn.Close()
 			continue
 		}
+
 		if err := cfg.ClientInitHandler(cfg, conn); err != nil {
 			conn.Close()
 			continue
 		}
+
 		if err := cfg.ServerInitHandler(cfg, conn); err != nil {
 			conn.Close()
 			continue
 		}
+
 		go conn.Handle()
 	}
 }
 
 func (c *ServerConn) Handle() error {
 	var err error
+	var wg sync.WaitGroup
+
 	defer c.Close()
 	clientMessages := make(map[ClientMessageType]ClientMessage)
 	for _, m := range c.cfg.ClientMessages {
 		clientMessages[m.Type()] = m
 	}
+	wg.Add(2)
 
-serverLoop:
-	for {
-		select {
-		case msg := <-c.cfg.ServerMessageCh:
-			if err = msg.Write(c); err != nil {
-				return err
+	// server
+	go func() error {
+		defer wg.Done()
+		for {
+			select {
+			case msg := <-c.cfg.ServerMessageCh:
+				if err = msg.Write(c); err != nil {
+					return err
+				}
+			case <-c.quit:
+				return nil
 			}
-			c.Flush()
-		case <-c.quit:
-			break serverLoop
 		}
-	}
+	}()
 
-clientLoop:
-	for {
-		select {
-		case <-c.quit:
-			break clientLoop
-		default:
-			var messageType ClientMessageType
-			if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
-				break clientLoop
-			}
+	// client
+	go func() error {
+		defer wg.Done()
+		for {
+			select {
+			case <-c.quit:
+				return nil
+			default:
+				var messageType ClientMessageType
+				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
+					return err
+				}
 
-			msg, ok := clientMessages[messageType]
-			if !ok {
-				err = fmt.Errorf("unsupported message-type: %v", messageType)
-				break clientLoop
-			}
-			if err := msg.Read(c); err != nil {
-				break clientLoop
-			}
+				if err := c.UnreadByte(); err != nil {
+					return err
+				}
 
-			c.cfg.ClientMessageCh <- msg
+				msg, ok := clientMessages[messageType]
+				if !ok {
+					return fmt.Errorf("unsupported message-type: %v", messageType)
+
+				}
+
+				if err := msg.Read(c); err != nil {
+					return err
+				}
+
+				c.cfg.ClientMessageCh <- msg
+			}
 		}
-	}
+	}()
+
+	wg.Wait()
 	return nil
 }
 
@@ -304,7 +373,7 @@ type ServerCutText struct {
 }
 
 func (msg *ServerCutText) Type() ServerMessageType {
-	return msg.MsgType
+	return ServerCutTextMsgType
 }
 
 func (msg *ServerCutText) Read(c Conn) error {
@@ -353,7 +422,7 @@ type Bell struct {
 }
 
 func (msg *Bell) Type() ServerMessageType {
-	return msg.MsgType
+	return BellMsgType
 }
 
 func (msg *Bell) Read(c Conn) error {
@@ -361,7 +430,10 @@ func (msg *Bell) Read(c Conn) error {
 }
 
 func (msg *Bell) Write(c Conn) error {
-	return binary.Write(c, binary.BigEndian, msg.MsgType)
+	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+		return err
+	}
+	return c.Flush()
 }
 
 type SetColorMapEntries struct {
@@ -373,7 +445,7 @@ type SetColorMapEntries struct {
 }
 
 func (msg *SetColorMapEntries) Type() ServerMessageType {
-	return msg.MsgType
+	return SetColorMapEntriesMsgType
 }
 
 func (msg *SetColorMapEntries) Read(c Conn) error {

@@ -13,6 +13,7 @@ import (
 var (
 	PixelFormat8bit  *PixelFormat = NewPixelFormat(8)
 	PixelFormat16bit *PixelFormat = NewPixelFormat(16)
+	PixelFormat24bit *PixelFormat = NewPixelFormat(24)
 	PixelFormat32bit *PixelFormat = NewPixelFormat(32)
 )
 
@@ -31,7 +32,7 @@ const pixelFormatLen = 16
 
 // NewPixelFormat returns a populated PixelFormat structure.
 func NewPixelFormat(bpp uint8) *PixelFormat {
-	bigEndian := uint8(1)
+	bigEndian := uint8(0)
 	rgbMax := uint16(math.Exp2(float64(bpp))) - 1
 	var (
 		tc         = uint8(1)
@@ -53,18 +54,18 @@ func NewPixelFormat(bpp uint8) *PixelFormat {
 func (pf *PixelFormat) Marshal() ([]byte, error) {
 	// Validation checks.
 	switch pf.BPP {
-	case 8, 16, 32:
+	case 8, 16, 24, 32:
 	default:
-		return nil, fmt.Errorf("Invalid BPP value %v; must be 8, 16, or 32.", pf.BPP)
+		return nil, fmt.Errorf("Invalid BPP value %v; must be 8, 16, 24 or 32.", pf.BPP)
 	}
 
 	if pf.Depth < pf.BPP {
 		return nil, fmt.Errorf("Invalid Depth value %v; cannot be < BPP", pf.Depth)
 	}
 	switch pf.Depth {
-	case 8, 16, 32:
+	case 8, 16, 24, 32:
 	default:
-		return nil, fmt.Errorf("Invalid Depth value %v; must be 8, 16, or 32.", pf.Depth)
+		return nil, fmt.Errorf("Invalid Depth value %v; must be 8, 16, 24 or 32.", pf.Depth)
 	}
 
 	// Create the slice of bytes

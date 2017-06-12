@@ -1,0 +1,180 @@
+package vnc
+
+import (
+	"crypto/des"
+	"encoding/binary"
+	"fmt"
+)
+
+type SecurityType uint8
+
+const (
+	SecTypeUnknown  = SecurityType(0)
+	SecTypeNone     = SecurityType(1)
+	SecTypeVNC      = SecurityType(2)
+	SecTypeVeNCrypt = SecurityType(19)
+)
+
+type SecuritySubType uint32
+
+const (
+	SecSubTypeUnknown = SecuritySubType(0)
+)
+
+const (
+	SecSubTypeVeNCrypt01Unknown   = SecuritySubType(0)
+	SecSubTypeVeNCrypt01Plain     = SecuritySubType(19)
+	SecSubTypeVeNCrypt01TLSNone   = SecuritySubType(20)
+	SecSubTypeVeNCrypt01TLSVNC    = SecuritySubType(21)
+	SecSubTypeVeNCrypt01TLSPlain  = SecuritySubType(22)
+	SecSubTypeVeNCrypt01X509None  = SecuritySubType(23)
+	SecSubTypeVeNCrypt01X509VNC   = SecuritySubType(24)
+	SecSubTypeVeNCrypt01X509Plain = SecuritySubType(25)
+)
+
+const (
+	SecSubTypeVeNCrypt02Unknown   = SecuritySubType(0)
+	SecSubTypeVeNCrypt02Plain     = SecuritySubType(256)
+	SecSubTypeVeNCrypt02TLSNone   = SecuritySubType(257)
+	SecSubTypeVeNCrypt02TLSVNC    = SecuritySubType(258)
+	SecSubTypeVeNCrypt02TLSPlain  = SecuritySubType(259)
+	SecSubTypeVeNCrypt02X509None  = SecuritySubType(260)
+	SecSubTypeVeNCrypt02X509VNC   = SecuritySubType(261)
+	SecSubTypeVeNCrypt02X509Plain = SecuritySubType(262)
+)
+
+type SecurityHandler interface {
+	Type() SecurityType
+	SubType() SecuritySubType
+	Auth(Conn) error
+}
+
+type ClientAuthNone struct{}
+
+func (*ClientAuthNone) Type() SecurityType {
+	return SecTypeNone
+}
+
+func (*ClientAuthNone) SubType() SecuritySubType {
+	return SecSubTypeUnknown
+}
+
+func (*ClientAuthNone) Auth(conn Conn) error {
+	return nil
+}
+
+// ServerAuthNone is the "none" authentication. See 7.2.1.
+type ServerAuthNone struct{}
+
+func (*ServerAuthNone) Type() SecurityType {
+	return SecTypeNone
+}
+
+func (*ServerAuthNone) Auth(c Conn) error {
+	return nil
+}
+
+func (*ClientAuthVeNCrypt02Plain) SubType() SecuritySubType {
+	return SecSubTypeVeNCrypt02Plain
+}
+
+// ClientAuthVeNCryptPlain see https://www.berrange.com/~dan/vencrypt.txt
+type ClientAuthVeNCrypt02Plain struct {
+	Username []byte
+	Password []byte
+}
+
+func (auth *ClientAuthVeNCrypt02Plain) Auth(c Conn) error {
+	if len(auth.Password) == 0 || len(auth.Username) == 0 {
+		return fmt.Errorf("Security Handshake failed; no username and/or password provided for VeNCryptAuth.")
+	}
+
+	if err := binary.Write(c, binary.BigEndian, uint32(len(auth.Username))); err != nil {
+		return err
+	}
+
+	if err := binary.Write(c, binary.BigEndian, uint32(len(auth.Password))); err != nil {
+		return err
+	}
+
+	if err := binary.Write(c, binary.BigEndian, auth.Username); err != nil {
+		return err
+	}
+
+	if err := binary.Write(c, binary.BigEndian, auth.Password); err != nil {
+		return err
+	}
+
+	return c.Flush()
+}
+
+// ServerAuthVNC is the standard password authentication. See 7.2.2.
+type ServerAuthVNC struct{}
+
+func (*ServerAuthVNC) Type() SecurityType {
+	return SecTypeVNC
+}
+func (*ServerAuthVNC) SubType() SecuritySubType {
+	return SecSubTypeUnknown
+}
+
+func (auth *ServerAuthVNC) Auth(c Conn) error {
+	return nil
+}
+
+// ClientAuthVNC is the standard password authentication. See 7.2.2.
+type ClientAuthVNC struct {
+	Challenge [16]byte
+	Password  []byte
+}
+
+func (*ClientAuthVNC) Type() SecurityType {
+	return SecTypeVNC
+}
+func (*ClientAuthVNC) SubType() SecuritySubType {
+	return SecSubTypeUnknown
+}
+
+func (auth *ClientAuthVNC) Auth(c Conn) error {
+	if len(auth.Password) == 0 {
+		return fmt.Errorf("Security Handshake failed; no password provided for VNCAuth.")
+	}
+
+	if err := binary.Read(c, binary.BigEndian, auth.Challenge); err != nil {
+		return err
+	}
+
+	auth.encode()
+
+	// Send the encrypted challenge back to server
+	if err := binary.Write(c, binary.BigEndian, auth.Challenge); err != nil {
+		return err
+	}
+
+	return c.Flush()
+}
+
+func (auth *ClientAuthVNC) encode() error {
+	// Copy password string to 8 byte 0-padded slice
+	key := make([]byte, 8)
+	copy(key, auth.Password)
+
+	// Each byte of the password needs to be reversed. This is a
+	// non RFC-documented behaviour of VNC clients and servers
+	for i := range key {
+		key[i] = (key[i]&0x55)<<1 | (key[i]&0xAA)>>1 // Swap adjacent bits
+		key[i] = (key[i]&0x33)<<2 | (key[i]&0xCC)>>2 // Swap adjacent pairs
+		key[i] = (key[i]&0x0F)<<4 | (key[i]&0xF0)>>4 // Swap the 2 halves
+	}
+
+	// Encrypt challenge with key.
+	cipher, err := des.NewCipher(key)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(auth.Challenge); i += cipher.BlockSize() {
+		cipher.Encrypt(auth.Challenge[i:i+cipher.BlockSize()], auth.Challenge[i:i+cipher.BlockSize()])
+	}
+
+	return nil
+}

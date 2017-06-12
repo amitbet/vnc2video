@@ -1,6 +1,8 @@
 package vnc
 
 import (
+	"encoding/binary"
+	"fmt"
 	"image"
 )
 
@@ -29,7 +31,12 @@ func NewColor(pf *PixelFormat, cm *ColorMap) *Color {
 type Rectangle struct {
 	X, Y          uint16
 	Width, Height uint16
+	EncType       EncodingType
 	Enc           Encoding
+}
+
+func NewRectangle() *Rectangle {
+	return &Rectangle{}
 }
 
 // Marshal implements the Marshaler interface.
@@ -106,50 +113,54 @@ func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
 }
 
 // Marshal implements the Marshaler interface.
-func (r *Rectangle) Marshal() ([]byte, error) {
-	/*
-		buf := bytes.NewBuffer(nil)
+func (r *Rectangle) Write(c Conn) error {
+	if err := binary.Write(c, binary.BigEndian, r.X); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, r.Y); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, r.Width); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, r.Height); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, r.EncType); err != nil {
+		return err
+	}
 
-		var msg Rectangle
-		msg.X, msg.Y, msg.W, msg.H = r.X, r.Y, r.Width, r.Height
-		msg.E = r.Enc.Type()
-		if err := binary.Write(buf, binary.BigEndian, msg); err != nil {
-			return nil, err
-		}
-
-		bytes, err := r.Enc.Marshal()
-		if err != nil {
-			return nil, err
-		}
-		if err := binary.Write(buf, binary.BigEndian, bytes); err != nil {
-			return nil, err
-		}
-
-		return buf.Bytes(), nil
-	*/
-	return nil, nil
+	if err := r.Enc.Write(c, r); err != nil {
+		return err
+	}
+	return c.Flush()
 }
 
-// Unmarshal implements the Unmarshaler interface.
-func (r *Rectangle) Unmarshal(data []byte) error {
-	/*
-		buf := bytes.NewBuffer(data)
+func (r *Rectangle) Read(c Conn) error {
+	fmt.Printf("qqq\n")
+	var err error
+	if err = binary.Read(c, binary.BigEndian, &r.X); err != nil {
+		return err
+	}
+	if err = binary.Read(c, binary.BigEndian, &r.Y); err != nil {
+		return err
+	}
+	if err = binary.Read(c, binary.BigEndian, &r.Width); err != nil {
+		return err
+	}
+	if err = binary.Read(c, binary.BigEndian, &r.Height); err != nil {
+		return err
+	}
+	if err = binary.Read(c, binary.BigEndian, &r.EncType); err != nil {
+		return err
+	}
+	fmt.Printf("rrrr %#+v\n", r)
+	switch r.EncType {
+	case EncRaw:
+		r.Enc = &RawEncoding{}
+	}
 
-		var msg Rectangle
-		if err := binary.Read(buf, binary.BigEndian, &msg); err != nil {
-			return err
-		}
-		r.X, r.Y, r.Width, r.Height = msg.X, msg.Y, msg.W, msg.H
-
-		switch msg.E {
-		case encodings.Raw:
-			r.Enc = &RawEncoding{}
-		default:
-			return fmt.Errorf("unable to unmarshal encoding %v", msg.E)
-		}
-		return nil
-	*/
-	return nil
+	return r.Enc.Read(c, r)
 }
 
 // Area returns the total area in pixels of the Rectangle.

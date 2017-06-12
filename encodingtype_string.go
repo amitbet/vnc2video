@@ -5,34 +5,44 @@ package vnc
 import "fmt"
 
 const (
-	_EncodingType_name_0 = "EncColorPseudo"
-	_EncodingType_name_1 = "EncDesktopSizePseudo"
-	_EncodingType_name_2 = "EncRawEncCopyRectEncRRE"
-	_EncodingType_name_3 = "EncHextile"
-	_EncodingType_name_4 = "EncTRLEEncZRLE"
+	_EncodingType_name_0 = "EncClientRedirect"
+	_EncodingType_name_1 = "EncColorPseudo"
+	_EncodingType_name_2 = "EncDesktopSizePseudo"
+	_EncodingType_name_3 = "EncRawEncCopyRectEncRRE"
+	_EncodingType_name_4 = "EncCoRREEncHextileEncZlibEncTightEncZlibHexEncUltra1EncUltra2"
+	_EncodingType_name_5 = "EncTRLEEncZRLE"
+	_EncodingType_name_6 = "EncJPEGEncJRLE"
 )
 
 var (
-	_EncodingType_index_0 = [...]uint8{0, 14}
-	_EncodingType_index_1 = [...]uint8{0, 20}
-	_EncodingType_index_2 = [...]uint8{0, 6, 17, 23}
-	_EncodingType_index_3 = [...]uint8{0, 10}
-	_EncodingType_index_4 = [...]uint8{0, 7, 14}
+	_EncodingType_index_0 = [...]uint8{0, 17}
+	_EncodingType_index_1 = [...]uint8{0, 14}
+	_EncodingType_index_2 = [...]uint8{0, 20}
+	_EncodingType_index_3 = [...]uint8{0, 6, 17, 23}
+	_EncodingType_index_4 = [...]uint8{0, 8, 18, 25, 33, 43, 52, 61}
+	_EncodingType_index_5 = [...]uint8{0, 7, 14}
+	_EncodingType_index_6 = [...]uint8{0, 7, 14}
 )
 
 func (i EncodingType) String() string {
 	switch {
-	case i == -239:
+	case i == -311:
 		return _EncodingType_name_0
-	case i == -223:
+	case i == -239:
 		return _EncodingType_name_1
+	case i == -223:
+		return _EncodingType_name_2
 	case 0 <= i && i <= 2:
-		return _EncodingType_name_2[_EncodingType_index_2[i]:_EncodingType_index_2[i+1]]
-	case i == 5:
-		return _EncodingType_name_3
+		return _EncodingType_name_3[_EncodingType_index_3[i]:_EncodingType_index_3[i+1]]
+	case 4 <= i && i <= 10:
+		i -= 4
+		return _EncodingType_name_4[_EncodingType_index_4[i]:_EncodingType_index_4[i+1]]
 	case 15 <= i && i <= 16:
 		i -= 15
-		return _EncodingType_name_4[_EncodingType_index_4[i]:_EncodingType_index_4[i+1]]
+		return _EncodingType_name_5[_EncodingType_index_5[i]:_EncodingType_index_5[i+1]]
+	case 21 <= i && i <= 22:
+		i -= 21
+		return _EncodingType_name_6[_EncodingType_index_6[i]:_EncodingType_index_6[i+1]]
 	default:
 		return fmt.Sprintf("EncodingType(%d)", i)
 	}

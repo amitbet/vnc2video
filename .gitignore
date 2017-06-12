@@ -14,3 +14,4 @@
 .glide/
 example/client/client
 example/server/server
+example/proxy/proxy
