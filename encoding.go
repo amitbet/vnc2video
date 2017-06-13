@@ -45,19 +45,31 @@ type RawEncoding struct {
 }
 
 func (enc *RawEncoding) Write(c Conn, rect *Rectangle) error {
-	/*
-		for _, cl := range enc.Colors {
-			bytes, err := cl.Marshal()
-			if err != nil {
-				return err
-			}
-			if err := binary.Write(c, binary.BigEndian, bytes); err != nil {
-				return err
-			}
+	buf := bytes.NewBuffer(nil)
+	defer buf.Reset()
+	n := 0
+	for _, c := range enc.Colors {
+		bytes, err := c.Marshal()
+		if err != nil {
+			return err
 		}
-	*/
-	return nil
+		n += len(bytes)
 
+		if err := binary.Write(buf, binary.BigEndian, bytes); err != nil {
+			return err
+		}
+
+		/*
+			if _, err := buf.Write(bytes); err != nil {
+				return err
+			}
+		*/
+	}
+	fmt.Printf("w %d\n", n)
+	//return binary.Write(c, binary.BigEndian, buf.Bytes())
+	fmt.Printf("w %v\n", buf.Bytes())
+	_, err := c.Write(buf.Bytes())
+	return err
 }
 
 // Read implements the Encoding interface.
@@ -68,12 +80,13 @@ func (enc *RawEncoding) Read(c Conn, rect *Rectangle) error {
 	bytesPerPixel := int(pf.BPP / 8)
 	n := rect.Area() * bytesPerPixel
 	data := make([]byte, n)
-	fmt.Printf("eeee\n")
+	fmt.Printf("r %d\n", n)
 	if err := binary.Read(c, binary.BigEndian, &data); err != nil {
 		return err
 	}
 	buf.Write(data)
 	defer buf.Reset()
+	fmt.Printf("r %v\n", buf.Bytes())
 	colors := make([]Color, rect.Area())
 	for y := uint16(0); y < rect.Height; y++ {
 		for x := uint16(0); x < rect.Width; x++ {
@@ -94,6 +107,8 @@ func (*RawEncoding) Type() EncodingType { return EncRaw }
 // DesktopSizePseudoEncoding represents a desktop size message from the server.
 type DesktopSizePseudoEncoding struct{}
 
+func (*DesktopSizePseudoEncoding) Type() EncodingType { return EncDesktopSizePseudo }
+
 // Read implements the Encoding interface.
 func (*DesktopSizePseudoEncoding) Read(c Conn, rect *Rectangle) error {
 	c.SetWidth(rect.Width)
@@ -102,6 +117,6 @@ func (*DesktopSizePseudoEncoding) Read(c Conn, rect *Rectangle) error {
 	return nil
 }
 
-func (enc *DesktopSizePseudoEncoding) Write(c *ServerConn, rect *Rectangle) error {
+func (enc *DesktopSizePseudoEncoding) Write(c Conn, rect *Rectangle) error {
 	return nil
 }

@@ -7,13 +7,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 )
 
 var (
 	PixelFormat8bit  *PixelFormat = NewPixelFormat(8)
 	PixelFormat16bit *PixelFormat = NewPixelFormat(16)
-	PixelFormat24bit *PixelFormat = NewPixelFormat(24)
 	PixelFormat32bit *PixelFormat = NewPixelFormat(32)
 )
 
@@ -28,44 +26,70 @@ type PixelFormat struct {
 	_                               [3]byte // padding
 }
 
+/*
+qemu:
+    <field name="vnc.server_red_max" showname="Red maximum: 255" size="2" pos="76" show="255" value="00ff"/>
+    <field name="vnc.server_green_max" showname="Green maximum: 255" size="2" pos="78" show="255" value="00ff"/>
+    <field name="vnc.server_blue_max" showname="Blue maximum: 255" size="2" pos="80" show="255" value="00ff"/>
+    <field name="vnc.server_red_shift" showname="Red shift: 16" size="1" pos="82" show="16" value="10"/>
+    <field name="vnc.server_green_shift" showname="Green shift: 8" size="1" pos="83" show="8" value="08"/>
+    <field name="vnc.server_blue_shift" showname="Blue shift: 0" size="1" pos="84" show="0" value="00"/>
+*/
+
+/*
+   <field name="vnc.server_red_max" showname="Red maximum: 65535" size="2" pos="76" show="65535" value="ffff"/>
+   <field name="vnc.server_green_max" showname="Green maximum: 65535" size="2" pos="78" show="65535" value="ffff"/>
+   <field name="vnc.server_blue_max" showname="Blue maximum: 65535" size="2" pos="80" show="65535" value="ffff"/>
+   <field name="vnc.server_red_shift" showname="Red shift: 0" size="1" pos="82" show="0" value="00"/>
+   <field name="vnc.server_green_shift" showname="Green shift: 8" size="1" pos="83" show="8" value="08"/>
+   <field name="vnc.server_blue_shift" showname="Blue shift: 16" size="1" pos="84" show="16" value="10"/>
+*/
 const pixelFormatLen = 16
 
 // NewPixelFormat returns a populated PixelFormat structure.
 func NewPixelFormat(bpp uint8) *PixelFormat {
 	bigEndian := uint8(0)
-	rgbMax := uint16(math.Exp2(float64(bpp))) - 1
+	//	rgbMax := uint16(math.Exp2(float64(bpp))) - 1
+	rMax := uint16(255)
+	gMax := uint16(255)
+	bMax := uint16(255)
 	var (
 		tc         = uint8(1)
 		rs, gs, bs uint8
+		depth      uint8
 	)
 	switch bpp {
 	case 8:
 		tc = 0
+		depth = 8
 		rs, gs, bs = 0, 0, 0
 	case 16:
+		depth = 16
 		rs, gs, bs = 0, 4, 8
 	case 32:
-		rs, gs, bs = 0, 8, 16
+		depth = 24
+		//	rs, gs, bs = 0, 8, 16
+		rs, gs, bs = 16, 8, 0
 	}
-	return &PixelFormat{bpp, bpp, bigEndian, tc, rgbMax, rgbMax, rgbMax, rs, gs, bs, [3]byte{}}
+	return &PixelFormat{bpp, depth, bigEndian, tc, rMax, gMax, bMax, rs, gs, bs, [3]byte{}}
 }
 
 // Marshal implements the Marshaler interface.
 func (pf *PixelFormat) Marshal() ([]byte, error) {
 	// Validation checks.
 	switch pf.BPP {
-	case 8, 16, 24, 32:
+	case 8, 16, 32:
 	default:
-		return nil, fmt.Errorf("Invalid BPP value %v; must be 8, 16, 24 or 32.", pf.BPP)
+		return nil, fmt.Errorf("Invalid BPP value %v; must be 8, 16, or 32.", pf.BPP)
 	}
 
 	if pf.Depth < pf.BPP {
 		return nil, fmt.Errorf("Invalid Depth value %v; cannot be < BPP", pf.Depth)
 	}
 	switch pf.Depth {
-	case 8, 16, 24, 32:
+	case 8, 16, 32:
 	default:
-		return nil, fmt.Errorf("Invalid Depth value %v; must be 8, 16, 24 or 32.", pf.Depth)
+		return nil, fmt.Errorf("Invalid Depth value %v; must be 8, 16, or 32.", pf.Depth)
 	}
 
 	// Create the slice of bytes

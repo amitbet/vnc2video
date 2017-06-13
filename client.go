@@ -59,7 +59,6 @@ func (c *ClientConn) SetProtoVersion(pv string) {
 func (c *ClientConn) SetEncodings(encs []EncodingType) error {
 
 	msg := &SetEncodings{
-		MsgType:   SetEncodingsMsgType,
 		EncNum:    uint16(len(encs)),
 		Encodings: encs,
 	}
@@ -201,17 +200,16 @@ const (
 
 // SetPixelFormat holds the wire format message.
 type SetPixelFormat struct {
-	MsgType ClientMessageType
-	_       [3]byte     // padding
-	PF      PixelFormat // pixel-format
+	_  [3]byte     // padding
+	PF PixelFormat // pixel-format
 }
 
-func (msg *SetPixelFormat) Type() ClientMessageType {
+func (*SetPixelFormat) Type() ClientMessageType {
 	return SetPixelFormatMsgType
 }
 
 func (msg *SetPixelFormat) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 
@@ -225,50 +223,51 @@ func (msg *SetPixelFormat) Write(c Conn) error {
 		c.SetColorMap(&ColorMap{})
 	}
 
-	return nil
+	return c.Flush()
 }
 
-func (msg *SetPixelFormat) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, &msg)
+func (*SetPixelFormat) Read(c Conn) (ClientMessage, error) {
+	msg := SetPixelFormat{}
+	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 // SetEncodings holds the wire format message, sans encoding-type field.
 type SetEncodings struct {
-	MsgType   ClientMessageType
 	_         [1]byte // padding
 	EncNum    uint16  // number-of-encodings
 	Encodings []EncodingType
 }
 
-func (msg *SetEncodings) Type() ClientMessageType {
+func (*SetEncodings) Type() ClientMessageType {
 	return SetEncodingsMsgType
 }
 
-func (msg *SetEncodings) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, &msg.MsgType); err != nil {
-		return err
-	}
+func (*SetEncodings) Read(c Conn) (ClientMessage, error) {
+	msg := SetEncodings{}
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := binary.Read(c, binary.BigEndian, &msg.EncNum); err != nil {
-		return err
+		return nil, err
 	}
 	var enc EncodingType
 	for i := uint16(0); i < msg.EncNum; i++ {
 		if err := binary.Read(c, binary.BigEndian, &enc); err != nil {
-			return err
+			return nil, err
 		}
 		msg.Encodings = append(msg.Encodings, enc)
 	}
 	c.SetEncodings(msg.Encodings)
-	return nil
+	return &msg, nil
 }
 
 func (msg *SetEncodings) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 
@@ -280,11 +279,9 @@ func (msg *SetEncodings) Write(c Conn) error {
 	if uint16(len(msg.Encodings)) > msg.EncNum {
 		msg.EncNum = uint16(len(msg.Encodings))
 	}
-
 	if err := binary.Write(c, binary.BigEndian, msg.EncNum); err != nil {
 		return err
 	}
-
 	for _, enc := range msg.Encodings {
 		if err := binary.Write(c, binary.BigEndian, enc); err != nil {
 			return err
@@ -295,21 +292,27 @@ func (msg *SetEncodings) Write(c Conn) error {
 
 // FramebufferUpdateRequest holds the wire format message.
 type FramebufferUpdateRequest struct {
-	MsgType       ClientMessageType
 	Inc           uint8  // incremental
 	X, Y          uint16 // x-, y-position
 	Width, Height uint16 // width, height
 }
 
-func (msg *FramebufferUpdateRequest) Type() ClientMessageType {
+func (*FramebufferUpdateRequest) Type() ClientMessageType {
 	return FramebufferUpdateRequestMsgType
 }
 
-func (msg *FramebufferUpdateRequest) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, &msg)
+func (*FramebufferUpdateRequest) Read(c Conn) (ClientMessage, error) {
+	msg := FramebufferUpdateRequest{}
+	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func (msg *FramebufferUpdateRequest) Write(c Conn) error {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
+		return err
+	}
 	if err := binary.Write(c, binary.BigEndian, msg); err != nil {
 		return err
 	}
@@ -318,21 +321,27 @@ func (msg *FramebufferUpdateRequest) Write(c Conn) error {
 
 // KeyEvent holds the wire format message.
 type KeyEvent struct {
-	MsgType ClientMessageType // message-type
-	Down    uint8             // down-flag
-	_       [2]byte           // padding
-	Key     Key               // key
+	Down uint8   // down-flag
+	_    [2]byte // padding
+	Key  Key     // key
 }
 
-func (msg *KeyEvent) Type() ClientMessageType {
+func (*KeyEvent) Type() ClientMessageType {
 	return KeyEventMsgType
 }
 
-func (msg *KeyEvent) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, &msg)
+func (*KeyEvent) Read(c Conn) (ClientMessage, error) {
+	msg := KeyEvent{}
+	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func (msg *KeyEvent) Write(c Conn) error {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
+		return err
+	}
 	if err := binary.Write(c, binary.BigEndian, msg); err != nil {
 		return err
 	}
@@ -341,20 +350,26 @@ func (msg *KeyEvent) Write(c Conn) error {
 
 // PointerEventMessage holds the wire format message.
 type PointerEvent struct {
-	MsgType ClientMessageType // message-type
-	Mask    uint8             // button-mask
-	X, Y    uint16            // x-, y-position
+	Mask uint8  // button-mask
+	X, Y uint16 // x-, y-position
 }
 
-func (msg *PointerEvent) Type() ClientMessageType {
+func (*PointerEvent) Type() ClientMessageType {
 	return PointerEventMsgType
 }
 
-func (msg *PointerEvent) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, &msg)
+func (*PointerEvent) Read(c Conn) (ClientMessage, error) {
+	msg := PointerEvent{}
+	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func (msg *PointerEvent) Write(c Conn) error {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
+		return err
+	}
 	if err := binary.Write(c, binary.BigEndian, msg); err != nil {
 		return err
 	}
@@ -363,40 +378,35 @@ func (msg *PointerEvent) Write(c Conn) error {
 
 // ClientCutText holds the wire format message, sans the text field.
 type ClientCutText struct {
-	MsgType ClientMessageType // message-type
-	_       [3]byte           // padding
-	Length  uint32            // length
-	Text    []byte
+	_      [3]byte // padding
+	Length uint32  // length
+	Text   []byte
 }
 
-func (msg *ClientCutText) Type() ClientMessageType {
+func (*ClientCutText) Type() ClientMessageType {
 	return ClientCutTextMsgType
 }
 
-func (msg *ClientCutText) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, &msg.MsgType); err != nil {
-		return err
-	}
-
+func (*ClientCutText) Read(c Conn) (ClientMessage, error) {
+	msg := ClientCutText{}
 	var pad [3]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := binary.Read(c, binary.BigEndian, &msg.Length); err != nil {
-		return err
+		return nil, err
 	}
 
-	text := make([]uint8, msg.Length)
-	if err := binary.Read(c, binary.BigEndian, &text); err != nil {
-		return err
+	msg.Text = make([]byte, msg.Length)
+	if err := binary.Read(c, binary.BigEndian, &msg.Text); err != nil {
+		return nil, err
 	}
-	msg.Text = text
-	return nil
+	return &msg, nil
 }
 
 func (msg *ClientCutText) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 
@@ -457,25 +467,21 @@ func (c *ClientConn) Handle() error {
 				if err = binary.Read(c, binary.BigEndian, &messageType); err != nil {
 					return err
 				}
-				if err := c.UnreadByte(); err != nil {
-					return err
-				}
+
 				msg, ok := serverMessages[messageType]
 				if !ok {
 					return fmt.Errorf("unknown message-type: %v", messageType)
 				}
-				if err = msg.Read(c); err != nil {
+
+				parsedMsg, err := msg.Read(c)
+				if err != nil {
 					return err
 				}
-				if c.cfg.ServerMessageCh == nil {
-					continue
-				}
-				c.cfg.ServerMessageCh <- msg
+				c.cfg.ServerMessageCh <- parsedMsg
 			}
 		}
 	}()
 	wg.Wait()
-	fmt.Printf("tttt\n")
 	return err
 }
 

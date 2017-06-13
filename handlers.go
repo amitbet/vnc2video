@@ -8,14 +8,14 @@ import (
 // ClientMessage is the interface
 type ClientMessage interface {
 	Type() ClientMessageType
-	Read(Conn) error
+	Read(Conn) (ClientMessage, error)
 	Write(Conn) error
 }
 
 // ServerMessage is the interface
 type ServerMessage interface {
 	Type() ServerMessageType
-	Read(Conn) error
+	Read(Conn) (ServerMessage, error)
 	Write(Conn) error
 }
 
@@ -262,7 +262,13 @@ func ServerServerInitHandler(cfg *ServerConfig, c Conn) error {
 }
 
 func ClientClientInitHandler(cfg *ClientConfig, c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, cfg.Exclusive); err != nil {
+	var shared uint8
+	if cfg.Exclusive {
+		shared = 0
+	} else {
+		shared = 1
+	}
+	if err := binary.Write(c, binary.BigEndian, shared); err != nil {
 		return err
 	}
 	return c.Flush()

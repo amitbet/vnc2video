@@ -114,19 +114,21 @@ func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
 
 // Marshal implements the Marshaler interface.
 func (r *Rectangle) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, r.X); err != nil {
+	var err error
+	fmt.Printf("w rect %#+v\n", r)
+	if err = binary.Write(c, binary.BigEndian, r.X); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, r.Y); err != nil {
+	if err = binary.Write(c, binary.BigEndian, r.Y); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, r.Width); err != nil {
+	if err = binary.Write(c, binary.BigEndian, r.Width); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, r.Height); err != nil {
+	if err = binary.Write(c, binary.BigEndian, r.Height); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, r.EncType); err != nil {
+	if err = binary.Write(c, binary.BigEndian, r.EncType); err != nil {
 		return err
 	}
 
@@ -137,8 +139,8 @@ func (r *Rectangle) Write(c Conn) error {
 }
 
 func (r *Rectangle) Read(c Conn) error {
-	fmt.Printf("qqq\n")
 	var err error
+
 	if err = binary.Read(c, binary.BigEndian, &r.X); err != nil {
 		return err
 	}
@@ -154,12 +156,11 @@ func (r *Rectangle) Read(c Conn) error {
 	if err = binary.Read(c, binary.BigEndian, &r.EncType); err != nil {
 		return err
 	}
-	fmt.Printf("rrrr %#+v\n", r)
 	switch r.EncType {
 	case EncRaw:
 		r.Enc = &RawEncoding{}
 	}
-
+	fmt.Printf("r rect %#+v\n", r)
 	return r.Enc.Read(c, r)
 }
 

@@ -137,43 +137,43 @@ const (
 
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
 type FramebufferUpdate struct {
-	MsgType ServerMessageType
-	_       [1]byte     // pad
-	NumRect uint16      // number-of-rectangles
-	Rects   []Rectangle // rectangles
+	_       [1]byte      // pad
+	NumRect uint16       // number-of-rectangles
+	Rects   []*Rectangle // rectangles
 }
 
-func (msg *FramebufferUpdate) Type() ServerMessageType {
+func (*FramebufferUpdate) Type() ServerMessageType {
 	return FramebufferUpdateMsgType
 }
 
-func (msg *FramebufferUpdate) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, msg.MsgType); err != nil {
-		return err
-	}
-	fmt.Printf("qqqqq\n")
+func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
+	msg := FramebufferUpdate{}
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := binary.Read(c, binary.BigEndian, msg.NumRect); err != nil {
-		return err
+	if err := binary.Read(c, binary.BigEndian, &msg.NumRect); err != nil {
+		return nil, err
 	}
-	msg.Rects = make([]Rectangle, msg.NumRect)
+	fmt.Printf("%#+v\n", msg)
 	for i := uint16(0); i < msg.NumRect; i++ {
-		rect := NewRectangle()
+		rect := &Rectangle{}
 		if err := rect.Read(c); err != nil {
-			return err
+			return nil, err
 		}
-		msg.Rects = append(msg.Rects, *rect)
+		msg.Rects = append(msg.Rects, rect)
 	}
-
-	return nil
+	fmt.Printf("r fb %d %d %v\n", msg.NumRect, uint16(len(msg.Rects)), msg.Rects)
+	if msg.NumRect != uint16(len(msg.Rects)) {
+		panic("rects not equal")
+	}
+	return &msg, nil
 }
 
 func (msg *FramebufferUpdate) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	fmt.Printf("w fb %d %d %v\n", msg.NumRect, uint16(len(msg.Rects)), msg.Rects)
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 	var pad [1]byte
@@ -341,22 +341,19 @@ func (c *ServerConn) Handle() error {
 				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
 					return err
 				}
-
-				if err := c.UnreadByte(); err != nil {
-					return err
-				}
-
+				fmt.Printf("srv r %s\n", messageType)
 				msg, ok := clientMessages[messageType]
 				if !ok {
 					return fmt.Errorf("unsupported message-type: %v", messageType)
 
 				}
-
-				if err := msg.Read(c); err != nil {
+				parsedMsg, err := msg.Read(c)
+				fmt.Printf("srv r %#+v\n", parsedMsg)
+				if err != nil {
+					fmt.Printf("srv err %s\n", err.Error())
 					return err
 				}
-
-				c.cfg.ClientMessageCh <- msg
+				c.cfg.ClientMessageCh <- parsedMsg
 			}
 		}
 	}()
@@ -366,40 +363,36 @@ func (c *ServerConn) Handle() error {
 }
 
 type ServerCutText struct {
-	MsgType ServerMessageType
-	_       [1]byte
-	Length  uint32
-	Text    []byte
+	_      [1]byte
+	Length uint32
+	Text   []byte
 }
 
-func (msg *ServerCutText) Type() ServerMessageType {
+func (*ServerCutText) Type() ServerMessageType {
 	return ServerCutTextMsgType
 }
 
-func (msg *ServerCutText) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, msg.MsgType); err != nil {
-		return err
-	}
+func (*ServerCutText) Read(c Conn) (ServerMessage, error) {
+	msg := ServerCutText{}
+
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
-		return err
+		return nil, err
 	}
 
-	var length uint32
-	if err := binary.Read(c, binary.BigEndian, &length); err != nil {
-		return err
+	if err := binary.Read(c, binary.BigEndian, &msg.Length); err != nil {
+		return nil, err
 	}
 
-	text := make([]byte, length)
-	if err := binary.Read(c, binary.BigEndian, &text); err != nil {
-		return err
+	msg.Text = make([]byte, msg.Length)
+	if err := binary.Read(c, binary.BigEndian, &msg.Text); err != nil {
+		return nil, err
 	}
-	msg.Text = text
-	return nil
+	return &msg, nil
 }
 
 func (msg *ServerCutText) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 	var pad [1]byte
@@ -407,6 +400,9 @@ func (msg *ServerCutText) Write(c Conn) error {
 		return err
 	}
 
+	if msg.Length < uint32(len(msg.Text)) {
+		msg.Length = uint32(len(msg.Text))
+	}
 	if err := binary.Write(c, binary.BigEndian, msg.Length); err != nil {
 		return err
 	}
@@ -417,52 +413,47 @@ func (msg *ServerCutText) Write(c Conn) error {
 	return nil
 }
 
-type Bell struct {
-	MsgType ServerMessageType
-}
+type Bell struct{}
 
-func (msg *Bell) Type() ServerMessageType {
+func (*Bell) Type() ServerMessageType {
 	return BellMsgType
 }
 
-func (msg *Bell) Read(c Conn) error {
-	return binary.Read(c, binary.BigEndian, msg.MsgType)
+func (*Bell) Read(c Conn) (ServerMessage, error) {
+	return &Bell{}, nil
 }
 
 func (msg *Bell) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 	return c.Flush()
 }
 
 type SetColorMapEntries struct {
-	MsgType    ServerMessageType
 	_          [1]byte
 	FirstColor uint16
 	ColorsNum  uint16
 	Colors     []Color
 }
 
-func (msg *SetColorMapEntries) Type() ServerMessageType {
+func (*SetColorMapEntries) Type() ServerMessageType {
 	return SetColorMapEntriesMsgType
 }
 
-func (msg *SetColorMapEntries) Read(c Conn) error {
-	if err := binary.Read(c, binary.BigEndian, msg.MsgType); err != nil {
-		return err
-	}
+func (*SetColorMapEntries) Read(c Conn) (ServerMessage, error) {
+	msg := SetColorMapEntries{}
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := binary.Read(c, binary.BigEndian, msg.FirstColor); err != nil {
-		return err
+	if err := binary.Read(c, binary.BigEndian, &msg.FirstColor); err != nil {
+		return nil, err
 	}
 
-	if err := binary.Read(c, binary.BigEndian, msg.ColorsNum); err != nil {
-		return err
+	if err := binary.Read(c, binary.BigEndian, &msg.ColorsNum); err != nil {
+		return nil, err
 	}
 
 	msg.Colors = make([]Color, msg.ColorsNum)
@@ -471,16 +462,16 @@ func (msg *SetColorMapEntries) Read(c Conn) error {
 	for i := uint16(0); i < msg.ColorsNum; i++ {
 		color := &msg.Colors[i]
 		if err := binary.Read(c, binary.BigEndian, &color); err != nil {
-			return err
+			return nil, err
 		}
 		colorMap[msg.FirstColor+i] = *color
 	}
 	c.SetColorMap(colorMap)
-	return nil
+	return &msg, nil
 }
 
 func (msg *SetColorMapEntries) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.MsgType); err != nil {
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
 	var pad [1]byte
