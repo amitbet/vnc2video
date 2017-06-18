@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"image/png"
 	"io"
+	"sync"
 )
 
 // EncodingType represents a known VNC encoding type.
@@ -84,6 +85,15 @@ const (
 	TightFilterPalette  TightFilter = 1
 	TightFilterGradient TightFilter = 2
 )
+
+var bPool = sync.Pool{
+	New: func() interface{} {
+		// The Pool's New function should generally only return pointer
+		// types, since a pointer can be put into the return interface
+		// value without an allocation:
+		return new(bytes.Buffer)
+	},
+}
 
 type Encoding interface {
 	Type() EncodingType
@@ -197,14 +207,18 @@ func (enc *TightPngEncoding) Write(c Conn, rect *Rectangle) error {
 	cmp := enc.TightCC.Compression
 	switch cmp {
 	case TightCompressionPNG:
-		buf := bytes.NewBuffer(nil)
-		if err := png.Encode(buf, enc.Image); err != nil {
+		buf := bPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		defer bPool.Put(buf)
+		pngEnc := &png.Encoder{CompressionLevel: png.BestSpeed}
+		if err := pngEnc.Encode(buf, enc.Image); err != nil {
 			return err
 		}
 		if err := writeTightLength(c, buf.Len()); err != nil {
 			return err
 		}
-		if _, err := io.Copy(c, buf); err != nil {
+
+		if _, err := buf.WriteTo(c); err != nil {
 			return err
 		}
 	case TightCompressionFill:
@@ -311,8 +325,9 @@ func readTightLength(c Conn) (int, error) {
 }
 
 func (enc *RawEncoding) Write(c Conn, rect *Rectangle) error {
-	buf := bytes.NewBuffer(nil)
-	defer buf.Reset()
+	buf := bPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bPool.Put(buf)
 	n := 0
 	for _, c := range enc.Colors {
 		bytes, err := c.Marshal()
@@ -325,13 +340,16 @@ func (enc *RawEncoding) Write(c Conn, rect *Rectangle) error {
 			return err
 		}
 	}
-	_, err := c.Write(buf.Bytes())
+
+	_, err := buf.WriteTo(c)
 	return err
 }
 
 // Read implements the Encoding interface.
 func (enc *RawEncoding) Read(c Conn, rect *Rectangle) error {
-	buf := bytes.NewBuffer(nil)
+	buf := bPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bPool.Put(buf)
 	pf := c.PixelFormat()
 	cm := c.ColorMap()
 	bytesPerPixel := int(pf.BPP / 8)
@@ -341,7 +359,6 @@ func (enc *RawEncoding) Read(c Conn, rect *Rectangle) error {
 		return err
 	}
 	buf.Write(data)
-	defer buf.Reset()
 	colors := make([]Color, rect.Area())
 	for y := uint16(0); y < rect.Height; y++ {
 		for x := uint16(0); x < rect.Width; x++ {

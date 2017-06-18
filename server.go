@@ -53,8 +53,8 @@ func (c *ServerConn) SetProtoVersion(pv string) {
 }
 
 func (c *ServerConn) Flush() error {
-	c.m.Lock()
-	defer c.m.Unlock()
+	//	c.m.Lock()
+	//	defer c.m.Unlock()
 	return c.bw.Flush()
 }
 
@@ -76,8 +76,8 @@ func (c *ServerConn) Read(buf []byte) (int, error) {
 }
 
 func (c *ServerConn) Write(buf []byte) (int, error) {
-	c.m.Lock()
-	defer c.m.Unlock()
+	//	c.m.Lock()
+	//	defer c.m.Unlock()
 	return c.bw.Write(buf)
 }
 

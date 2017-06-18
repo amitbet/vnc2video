@@ -93,7 +93,10 @@ func (pf *PixelFormat) Marshal() ([]byte, error) {
 	}
 
 	// Create the slice of bytes
-	buf := bytes.NewBuffer(nil)
+	buf := bPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bPool.Put(buf)
+
 	if err := binary.Write(buf, binary.BigEndian, &pf); err != nil {
 		return nil, err
 	}
@@ -112,7 +115,13 @@ func (pf *PixelFormat) Read(r io.Reader) error {
 
 // Unmarshal implements the Unmarshaler interface.
 func (pf *PixelFormat) Unmarshal(data []byte) error {
-	buf := bytes.NewBuffer(data)
+	buf := bPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bPool.Put(buf)
+
+	if _, err := buf.Write(data); err != nil {
+		return err
+	}
 
 	var msg PixelFormat
 	if err := binary.Read(buf, binary.BigEndian, &msg); err != nil {
