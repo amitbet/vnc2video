@@ -416,10 +416,7 @@ func (*Bell) Read(c Conn) (ServerMessage, error) {
 }
 
 func (msg *Bell) Write(c Conn) error {
-	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
-		return err
-	}
-	return c.Flush()
+	return binary.Write(c, binary.BigEndian, msg.Type())
 }
 
 type SetColorMapEntries struct {

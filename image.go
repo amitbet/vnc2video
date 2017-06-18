@@ -114,6 +114,7 @@ func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
 
 // Marshal implements the Marshaler interface.
 func (r *Rectangle) Write(c Conn) error {
+
 	var err error
 	if err = binary.Write(c, binary.BigEndian, r.X); err != nil {
 		return err
@@ -131,10 +132,7 @@ func (r *Rectangle) Write(c Conn) error {
 		return err
 	}
 
-	if err := r.Enc.Write(c, r); err != nil {
-		return err
-	}
-	return c.Flush()
+	return r.Enc.Write(c, r)
 }
 
 func (r *Rectangle) Read(c Conn) error {

@@ -244,16 +244,11 @@ func (enc *TightPngEncoding) Read(c Conn, rect *Rectangle) error {
 	cmp := enc.TightCC.Compression
 	switch cmp {
 	case TightCompressionPNG:
-		buf := bytes.NewBuffer(nil)
 		l, err := readTightLength(c)
 		if err != nil {
 			return err
 		}
-		_, err = io.CopyN(buf, c, int64(l))
-		if err != nil {
-			return err
-		}
-		enc.Image, err = png.Decode(buf)
+		enc.Image, err = png.Decode(io.LimitReader(c, int64(l)))
 		if err != nil {
 			return err
 		}

@@ -4,11 +4,17 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 
 	vnc "github.com/vtolstov/go-vnc"
 )
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe(":6060", nil))
+	}()
+
 	ln, err := net.Listen("tcp", ":5900")
 	if err != nil {
 		log.Fatalf("Error listen. %v", err)
