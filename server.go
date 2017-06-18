@@ -156,7 +156,6 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 	if err := binary.Read(c, binary.BigEndian, &msg.NumRect); err != nil {
 		return nil, err
 	}
-	fmt.Printf("%#+v\n", msg)
 	for i := uint16(0); i < msg.NumRect; i++ {
 		rect := &Rectangle{}
 		if err := rect.Read(c); err != nil {
@@ -164,15 +163,10 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 		}
 		msg.Rects = append(msg.Rects, rect)
 	}
-	fmt.Printf("r fb %d %d %v\n", msg.NumRect, uint16(len(msg.Rects)), msg.Rects)
-	if msg.NumRect != uint16(len(msg.Rects)) {
-		panic("rects not equal")
-	}
 	return &msg, nil
 }
 
 func (msg *FramebufferUpdate) Write(c Conn) error {
-	fmt.Printf("w fb %d %d %v\n", msg.NumRect, uint16(len(msg.Rects)), msg.Rects)
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
@@ -341,14 +335,12 @@ func (c *ServerConn) Handle() error {
 				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
 					return err
 				}
-				fmt.Printf("srv r %s\n", messageType)
 				msg, ok := clientMessages[messageType]
 				if !ok {
 					return fmt.Errorf("unsupported message-type: %v", messageType)
 
 				}
 				parsedMsg, err := msg.Read(c)
-				fmt.Printf("srv r %#+v\n", parsedMsg)
 				if err != nil {
 					fmt.Printf("srv err %s\n", err.Error())
 					return err

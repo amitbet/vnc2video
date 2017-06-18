@@ -198,6 +198,9 @@ func ServerSecurityHandler(cfg *ServerConfig, c Conn) error {
 		if err := binary.Write(c, binary.BigEndian, []byte(authErr.Error())); err != nil {
 			return err
 		}
+		if err := c.Flush(); err != nil {
+			return err
+		}
 		return authErr
 	}
 

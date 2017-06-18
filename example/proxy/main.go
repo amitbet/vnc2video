@@ -18,19 +18,26 @@ func main() {
 	schServer := make(chan vnc.ServerMessage)
 
 	scfg := &vnc.ServerConfig{
-		Width:             800,
-		Height:            600,
-		VersionHandler:    vnc.ServerVersionHandler,
-		SecurityHandler:   vnc.ServerSecurityHandler,
-		SecurityHandlers:  []vnc.SecurityHandler{&vnc.ClientAuthNone{}},
+		Width:           800,
+		Height:          600,
+		VersionHandler:  vnc.ServerVersionHandler,
+		SecurityHandler: vnc.ServerSecurityHandler,
+		SecurityHandlers: []vnc.SecurityHandler{
+			&vnc.ClientAuthVeNCrypt02Plain{Username: []byte("test"), Password: []byte("test")},
+			&vnc.ClientAuthNone{},
+		},
 		ClientInitHandler: vnc.ServerClientInitHandler,
 		ServerInitHandler: vnc.ServerServerInitHandler,
-		Encodings:         []vnc.Encoding{&vnc.RawEncoding{}},
-		PixelFormat:       vnc.PixelFormat32bit,
-		ClientMessageCh:   schClient,
-		ServerMessageCh:   schServer,
-		ClientMessages:    vnc.DefaultClientMessages,
-		DesktopName:       []byte("vnc proxy"),
+		Encodings: []vnc.Encoding{
+			&vnc.TightPngEncoding{},
+			&vnc.CopyRectEncoding{},
+			&vnc.RawEncoding{},
+		},
+		PixelFormat:     vnc.PixelFormat32bit,
+		ClientMessageCh: schClient,
+		ServerMessageCh: schServer,
+		ClientMessages:  vnc.DefaultClientMessages,
+		DesktopName:     []byte("vnc proxy"),
 	}
 	c, err := net.Dial("tcp", "127.0.0.1:5995")
 	if err != nil {
@@ -57,9 +64,9 @@ func main() {
 		log.Fatalf("Error dial. %v", err)
 	}
 
-	scfg.Width = cc.Width()
-	scfg.Height = cc.Height()
-	scfg.PixelFormat = cc.PixelFormat()
+	//	scfg.Width = cc.Width()
+	//	scfg.Height = cc.Height()
+	//	scfg.PixelFormat = cc.PixelFormat()
 	go vnc.Serve(context.Background(), ln, scfg)
 
 	defer cc.Close()
@@ -75,28 +82,28 @@ func main() {
 		case msg := <-schClient:
 			switch msg.Type() {
 			case vnc.SetEncodingsMsgType:
-				msg0 := &vnc.SetPixelFormat{
-					PF: *vnc.PixelFormat32bit,
+				var encTypes []vnc.EncodingType
+				for _, enc := range scfg.Encodings {
+					encTypes = append(encTypes, enc.Type())
+				}
+				msg0 := &vnc.SetEncodings{
+					Encodings: encTypes,
 				}
 				cchClient <- msg0
-
-				encRaw := &vnc.RawEncoding{}
-				msg1 := &vnc.SetEncodings{
-					Encodings: []vnc.EncodingType{encRaw.Type()},
-				}
-				cchClient <- msg1
 				/*
-					msg2 := &vnc.FramebufferUpdateRequest{
-						Inc:    0,
-						X:      0,
-						Y:      0,
-						Width:  cc.Width(),
-						Height: cc.Height(),
+					if scfg.Width != cc.Width() || scfg.Height != cc.Height() {
+						msg1 := &vnc.FramebufferUpdate{
+							Rects: []*vnc.Rectangle{&vnc.Rectangle{
+								Width:   cc.Width(),
+								Height:  cc.Height(),
+								EncType: vnc.EncDesktopSizePseudo,
+								Enc:     &vnc.DesktopSizePseudoEncoding{},
+							},
+							},
+						}
+						schServer <- msg1
 					}
-					cchClient <- msg2
 				*/
-			case vnc.SetPixelFormatMsgType:
-				cchClient <- msg
 			default:
 				cchClient <- msg
 			}

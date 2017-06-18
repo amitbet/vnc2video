@@ -115,7 +115,6 @@ func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
 // Marshal implements the Marshaler interface.
 func (r *Rectangle) Write(c Conn) error {
 	var err error
-	fmt.Printf("w rect %#+v\n", r)
 	if err = binary.Write(c, binary.BigEndian, r.X); err != nil {
 		return err
 	}
@@ -157,10 +156,17 @@ func (r *Rectangle) Read(c Conn) error {
 		return err
 	}
 	switch r.EncType {
+	case EncCopyRect:
+		r.Enc = &CopyRectEncoding{}
+	case EncTight:
+		r.Enc = &TightEncoding{}
+	case EncTightPng:
+		r.Enc = &TightPngEncoding{}
 	case EncRaw:
 		r.Enc = &RawEncoding{}
+	default:
+		return fmt.Errorf("unsupported encoding %s", r.EncType)
 	}
-	fmt.Printf("r rect %#+v\n", r)
 	return r.Enc.Read(c, r)
 }
 

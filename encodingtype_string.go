@@ -4,46 +4,59 @@ package vnc
 
 import "fmt"
 
-const (
-	_EncodingType_name_0 = "EncClientRedirect"
-	_EncodingType_name_1 = "EncColorPseudo"
-	_EncodingType_name_2 = "EncDesktopSizePseudo"
-	_EncodingType_name_3 = "EncRawEncCopyRectEncRRE"
-	_EncodingType_name_4 = "EncCoRREEncHextileEncZlibEncTightEncZlibHexEncUltra1EncUltra2"
-	_EncodingType_name_5 = "EncTRLEEncZRLE"
-	_EncodingType_name_6 = "EncJPEGEncJRLE"
-)
+const _EncodingType_name = "EncContinuousUpdatesPseudoEncFencePseudoEncClientRedirectEncXvpPseudoEncExtendedDesktopSizePseudoEncTightPngEncQEMUExtendedKeyEventPseudoEncQEMUPointerMotionChangePseudoEncCompressionLevel1EncCompressionLevel2EncCompressionLevel3EncCompressionLevel4EncCompressionLevel5EncCompressionLevel6EncCompressionLevel7EncCompressionLevel8EncCompressionLevel9EncCompressionLevel10EncColorPseudoEncLastRectPseudoEncDesktopSizePseudoEncJPEGQualityLevelPseudo1EncJPEGQualityLevelPseudo2EncJPEGQualityLevelPseudo3EncJPEGQualityLevelPseudo4EncJPEGQualityLevelPseudo5EncJPEGQualityLevelPseudo6EncJPEGQualityLevelPseudo7EncJPEGQualityLevelPseudo8EncJPEGQualityLevelPseudo9EncJPEGQualityLevelPseudo10EncRawEncCopyRectEncRREEncCoRREEncHextileEncZlibEncTightEncZlibHexEncUltra1EncUltra2EncTRLEEncZRLEEncJPEGEncJRLE"
 
-var (
-	_EncodingType_index_0 = [...]uint8{0, 17}
-	_EncodingType_index_1 = [...]uint8{0, 14}
-	_EncodingType_index_2 = [...]uint8{0, 20}
-	_EncodingType_index_3 = [...]uint8{0, 6, 17, 23}
-	_EncodingType_index_4 = [...]uint8{0, 8, 18, 25, 33, 43, 52, 61}
-	_EncodingType_index_5 = [...]uint8{0, 7, 14}
-	_EncodingType_index_6 = [...]uint8{0, 7, 14}
-)
+var _EncodingType_map = map[EncodingType]string{
+	-313: _EncodingType_name[0:26],
+	-312: _EncodingType_name[26:40],
+	-311: _EncodingType_name[40:57],
+	-309: _EncodingType_name[57:69],
+	-308: _EncodingType_name[69:97],
+	-260: _EncodingType_name[97:108],
+	-258: _EncodingType_name[108:137],
+	-257: _EncodingType_name[137:169],
+	-256: _EncodingType_name[169:189],
+	-255: _EncodingType_name[189:209],
+	-254: _EncodingType_name[209:229],
+	-253: _EncodingType_name[229:249],
+	-252: _EncodingType_name[249:269],
+	-251: _EncodingType_name[269:289],
+	-250: _EncodingType_name[289:309],
+	-249: _EncodingType_name[309:329],
+	-248: _EncodingType_name[329:349],
+	-247: _EncodingType_name[349:370],
+	-239: _EncodingType_name[370:384],
+	-224: _EncodingType_name[384:401],
+	-223: _EncodingType_name[401:421],
+	-32:  _EncodingType_name[421:447],
+	-31:  _EncodingType_name[447:473],
+	-30:  _EncodingType_name[473:499],
+	-29:  _EncodingType_name[499:525],
+	-28:  _EncodingType_name[525:551],
+	-27:  _EncodingType_name[551:577],
+	-26:  _EncodingType_name[577:603],
+	-25:  _EncodingType_name[603:629],
+	-24:  _EncodingType_name[629:655],
+	-23:  _EncodingType_name[655:682],
+	0:    _EncodingType_name[682:688],
+	1:    _EncodingType_name[688:699],
+	2:    _EncodingType_name[699:705],
+	4:    _EncodingType_name[705:713],
+	5:    _EncodingType_name[713:723],
+	6:    _EncodingType_name[723:730],
+	7:    _EncodingType_name[730:738],
+	8:    _EncodingType_name[738:748],
+	9:    _EncodingType_name[748:757],
+	10:   _EncodingType_name[757:766],
+	15:   _EncodingType_name[766:773],
+	16:   _EncodingType_name[773:780],
+	21:   _EncodingType_name[780:787],
+	22:   _EncodingType_name[787:794],
+}
 
 func (i EncodingType) String() string {
-	switch {
-	case i == -311:
-		return _EncodingType_name_0
-	case i == -239:
-		return _EncodingType_name_1
-	case i == -223:
-		return _EncodingType_name_2
-	case 0 <= i && i <= 2:
-		return _EncodingType_name_3[_EncodingType_index_3[i]:_EncodingType_index_3[i+1]]
-	case 4 <= i && i <= 10:
-		i -= 4
-		return _EncodingType_name_4[_EncodingType_index_4[i]:_EncodingType_index_4[i+1]]
-	case 15 <= i && i <= 16:
-		i -= 15
-		return _EncodingType_name_5[_EncodingType_index_5[i]:_EncodingType_index_5[i+1]]
-	case 21 <= i && i <= 22:
-		i -= 21
-		return _EncodingType_name_6[_EncodingType_index_6[i]:_EncodingType_index_6[i+1]]
-	default:
-		return fmt.Sprintf("EncodingType(%d)", i)
+	if str, ok := _EncodingType_map[i]; ok {
+		return str
 	}
+	return fmt.Sprintf("EncodingType(%d)", i)
 }
