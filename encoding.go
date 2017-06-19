@@ -211,6 +211,7 @@ func (enc *TightPngEncoding) Write(c Conn, rect *Rectangle) error {
 		buf.Reset()
 		defer bPool.Put(buf)
 		pngEnc := &png.Encoder{CompressionLevel: png.BestSpeed}
+		//pngEnc := &png.Encoder{CompressionLevel: png.NoCompression}
 		if err := pngEnc.Encode(buf, enc.Image); err != nil {
 			return err
 		}

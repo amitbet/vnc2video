@@ -68,8 +68,7 @@ func ClientVersionHandler(cfg *ClientConfig, c Conn) error {
 	if pv == ProtoVersionUnknown {
 		return fmt.Errorf("ProtocolVersion handshake failed; unsupported version '%v'", string(version[:]))
 	}
-
-	c.SetProtoVersion(pv)
+	c.SetProtoVersion(string(version[:]))
 
 	if err := binary.Write(c, binary.BigEndian, []byte(pv)); err != nil {
 		return err
@@ -120,11 +119,25 @@ func ClientSecurityHandler(cfg *ClientConfig, c Conn) error {
 		return err
 	}
 
+	var secType SecurityHandler
+	for _, st := range cfg.SecurityHandlers {
+		for _, sc := range secTypes {
+			if st.Type() == sc {
+				secType = st
+			}
+		}
+	}
+
 	if err := binary.Write(c, binary.BigEndian, cfg.SecurityHandlers[0].Type()); err != nil {
 		return err
 	}
 
 	if err := c.Flush(); err != nil {
+		return err
+	}
+
+	err := secType.Auth(c)
+	if err != nil {
 		return err
 	}
 

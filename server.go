@@ -27,10 +27,6 @@ type ServerInit struct {
 
 var _ Conn = (*ServerConn)(nil)
 
-func (c *ServerConn) UnreadByte() error {
-	return c.br.UnreadByte()
-}
-
 func (c *ServerConn) Conn() net.Conn {
 	return c.c
 }
@@ -53,8 +49,6 @@ func (c *ServerConn) SetProtoVersion(pv string) {
 }
 
 func (c *ServerConn) Flush() error {
-	//	c.m.Lock()
-	//	defer c.m.Unlock()
 	return c.bw.Flush()
 }
 
@@ -62,22 +56,11 @@ func (c *ServerConn) Close() error {
 	return c.c.Close()
 }
 
-/*
-func (c *ServerConn) Input() chan *ServerMessage {
-	return c.cfg.ServerMessageCh
-}
-
-func (c *ServerConn) Output() chan *ClientMessage {
-	return c.cfg.ClientMessageCh
-}
-*/
 func (c *ServerConn) Read(buf []byte) (int, error) {
 	return c.br.Read(buf)
 }
 
 func (c *ServerConn) Write(buf []byte) (int, error) {
-	//	c.m.Lock()
-	//	defer c.m.Unlock()
 	return c.bw.Write(buf)
 }
 
@@ -232,6 +215,7 @@ type ServerConfig struct {
 	ColorMap          *ColorMap
 	ClientMessageCh   chan ClientMessage
 	ServerMessageCh   chan ServerMessage
+	ErrorCh           chan error
 	ClientMessages    []ClientMessage
 	DesktopName       []byte
 	Height            uint16
@@ -402,7 +386,7 @@ func (msg *ServerCutText) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Text); err != nil {
 		return err
 	}
-	return nil
+	return c.Flush()
 }
 
 type Bell struct{}
@@ -416,7 +400,10 @@ func (*Bell) Read(c Conn) (ServerMessage, error) {
 }
 
 func (msg *Bell) Write(c Conn) error {
-	return binary.Write(c, binary.BigEndian, msg.Type())
+	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
+		return err
+	}
+	return c.Flush()
 }
 
 type SetColorMapEntries struct {
@@ -486,5 +473,5 @@ func (msg *SetColorMapEntries) Write(c Conn) error {
 		}
 	}
 
-	return nil
+	return c.Flush()
 }

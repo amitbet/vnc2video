@@ -66,13 +66,7 @@ func (c *ClientConn) SetEncodings(encs []EncodingType) error {
 	return msg.Write(c)
 }
 
-func (c *ClientConn) UnreadByte() error {
-	return c.br.UnreadByte()
-}
-
 func (c *ClientConn) Flush() error {
-	//	c.m.Lock()
-	//	defer c.m.Unlock()
 	return c.bw.Flush()
 }
 
@@ -85,8 +79,6 @@ func (c *ClientConn) Read(buf []byte) (int, error) {
 }
 
 func (c *ClientConn) Write(buf []byte) (int, error) {
-	//	c.m.Lock()
-	//	defer c.m.Unlock()
 	return c.bw.Write(buf)
 }
 
