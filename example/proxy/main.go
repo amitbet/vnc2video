@@ -70,9 +70,6 @@ func main() {
 		log.Fatalf("Error dial. %v", err)
 	}
 
-	//	scfg.Width = cc.Width()
-	//	scfg.Height = cc.Height()
-	//	scfg.PixelFormat = cc.PixelFormat()
 	go vnc.Serve(context.Background(), ln, scfg)
 
 	defer cc.Close()
@@ -81,35 +78,19 @@ func main() {
 	for {
 		select {
 		case msg := <-cchServer:
-			switch msg.Type() {
-			default:
-				schServer <- msg
-			}
+			schServer <- msg
 		case msg := <-schClient:
 			switch msg.Type() {
 			case vnc.SetEncodingsMsgType:
 				var encTypes []vnc.EncodingType
-				for _, enc := range scfg.Encodings {
-					encTypes = append(encTypes, enc.Type())
-				}
-				msg0 := &vnc.SetEncodings{
-					Encodings: encTypes,
-				}
-				cchClient <- msg0
-				/*
-					if scfg.Width != cc.Width() || scfg.Height != cc.Height() {
-						msg1 := &vnc.FramebufferUpdate{
-							Rects: []*vnc.Rectangle{&vnc.Rectangle{
-								Width:   cc.Width(),
-								Height:  cc.Height(),
-								EncType: vnc.EncDesktopSizePseudo,
-								Enc:     &vnc.DesktopSizePseudoEncoding{},
-							},
-							},
+				for _, senc := range scfg.Encodings {
+					for _, cenc := range msg.(*vnc.SetEncodings).Encodings {
+						if cenc == senc.Type() {
+							encTypes = append(encTypes, senc.Type())
 						}
-						schServer <- msg1
 					}
-				*/
+				}
+				cchClient <- &vnc.SetEncodings{Encodings: encTypes}
 			default:
 				cchClient <- msg
 			}
