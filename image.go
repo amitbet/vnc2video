@@ -39,6 +39,28 @@ func NewRectangle() *Rectangle {
 	return &Rectangle{}
 }
 
+func (clr *Color) Write(c Conn) error {
+	var err error
+	order := clr.pf.order()
+	pixel := clr.cmIndex
+	if clr.pf.TrueColor == 1 {
+		pixel = uint32(clr.R) << clr.pf.RedShift
+		pixel |= uint32(clr.G) << clr.pf.GreenShift
+		pixel |= uint32(clr.B) << clr.pf.BlueShift
+	}
+
+	switch clr.pf.BPP {
+	case 8:
+		err = binary.Write(c, order, byte(pixel))
+	case 16:
+		err = binary.Write(c, order, uint16(pixel))
+	case 32:
+		err = binary.Write(c, order, uint32(pixel))
+	}
+
+	return err
+}
+
 // Marshal implements the Marshaler interface.
 func (c *Color) Marshal() ([]byte, error) {
 	order := c.pf.order()
@@ -63,6 +85,42 @@ func (c *Color) Marshal() ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+func (clr *Color) Read(c Conn) error {
+	order := clr.pf.order()
+	var pixel uint32
+
+	switch clr.pf.BPP {
+	case 8:
+		var px uint8
+		if err := binary.Read(c, order, &px); err != nil {
+			return err
+		}
+		pixel = uint32(px)
+	case 16:
+		var px uint16
+		if err := binary.Read(c, order, &px); err != nil {
+			return err
+		}
+		pixel = uint32(px)
+	case 32:
+		var px uint32
+		if err := binary.Read(c, order, &px); err != nil {
+			return err
+		}
+		pixel = uint32(px)
+	}
+
+	if clr.pf.TrueColor == 1 {
+		clr.R = uint16((pixel >> clr.pf.RedShift) & uint32(clr.pf.RedMax))
+		clr.G = uint16((pixel >> clr.pf.GreenShift) & uint32(clr.pf.GreenMax))
+		clr.B = uint16((pixel >> clr.pf.BlueShift) & uint32(clr.pf.BlueMax))
+	} else {
+		*clr = clr.cm[pixel]
+		clr.cmIndex = pixel
+	}
+	return nil
 }
 
 // Unmarshal implements the Unmarshaler interface.

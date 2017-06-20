@@ -326,53 +326,34 @@ func readTightLength(c Conn) (int, error) {
 }
 
 func (enc *RawEncoding) Write(c Conn, rect *Rectangle) error {
-	buf := bPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bPool.Put(buf)
-	n := 0
-	for _, c := range enc.Colors {
-		bytes, err := c.Marshal()
-		if err != nil {
-			return err
-		}
-		n += len(bytes)
-
-		if err := binary.Write(buf, binary.BigEndian, bytes); err != nil {
-			return err
+	var err error
+	for _, clr := range enc.Colors {
+		if err = clr.Write(c); err != nil {
+			break
 		}
 	}
-
-	_, err := buf.WriteTo(c)
 	return err
 }
 
 // Read implements the Encoding interface.
 func (enc *RawEncoding) Read(c Conn, rect *Rectangle) error {
-	buf := bPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bPool.Put(buf)
+	var err error
 	pf := c.PixelFormat()
 	cm := c.ColorMap()
-	bytesPerPixel := int(pf.BPP / 8)
-	n := rect.Area() * bytesPerPixel
-	data := make([]byte, n)
-	if err := binary.Read(c, binary.BigEndian, &data); err != nil {
-		return err
-	}
-	buf.Write(data)
 	colors := make([]Color, rect.Area())
+Loop:
 	for y := uint16(0); y < rect.Height; y++ {
 		for x := uint16(0); x < rect.Width; x++ {
 			color := NewColor(pf, cm)
-			if err := color.Unmarshal(buf.Next(bytesPerPixel)); err != nil {
-				return err
+			if err = color.Read(c); err != nil {
+				break Loop
 			}
 			colors[int(y)*int(rect.Width)+int(x)] = *color
 		}
 	}
 
 	enc.Colors = colors
-	return nil
+	return err
 }
 
 func (*RawEncoding) Type() EncodingType { return EncRaw }
