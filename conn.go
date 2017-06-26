@@ -8,6 +8,7 @@ import (
 type Conn interface {
 	io.ReadWriteCloser
 	Conn() net.Conn
+	Config() interface{}
 	Protocol() string
 	PixelFormat() *PixelFormat
 	SetPixelFormat(*PixelFormat) error
@@ -19,8 +20,8 @@ type Conn interface {
 	Height() uint16
 	SetWidth(uint16)
 	SetHeight(uint16)
-	DesktopName() string
-	SetDesktopName(string)
+	DesktopName() []byte
+	SetDesktopName([]byte)
 	Flush() error
 	SetProtoVersion(string)
 }

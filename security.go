@@ -73,6 +73,10 @@ func (*ServerAuthNone) Type() SecurityType {
 	return SecTypeNone
 }
 
+func (*ServerAuthNone) SubType() SecuritySubType {
+	return SecSubTypeUnknown
+}
+
 func (*ServerAuthNone) Auth(c Conn) error {
 	return nil
 }
@@ -115,7 +119,7 @@ func (auth *ClientAuthATEN) Auth(c Conn) error {
 		return err
 	}
 	if (nt&0xffff0ff0)>>0 == 0xaff90fb0 {
-		fmt.Printf("aten\n")
+		c.SetProtoVersion("aten")
 		var skip [20]byte
 		binary.Read(c, binary.BigEndian, &skip)
 		fmt.Printf("skip %s\n", skip)
@@ -158,13 +162,22 @@ func (auth *ClientAuthATEN) Auth(c Conn) error {
 			sendPassword[i] = 0
 		}
 	}
+
 	if err := binary.Write(c, binary.BigEndian, sendUsername); err != nil {
 		return err
 	}
 	if err := binary.Write(c, binary.BigEndian, sendPassword); err != nil {
 		return err
 	}
-	return c.Flush()
+
+	if err := c.Flush(); err != nil {
+		return err
+	}
+
+	//var pp [10]byte
+	//binary.Read(c, binary.BigEndian, &pp)
+	//fmt.Printf("ddd %v\n", pp)
+	return nil
 }
 
 func (*ClientAuthVeNCrypt02Plain) Type() SecurityType {
@@ -270,7 +283,11 @@ func (auth *ClientAuthVeNCrypt02Plain) Auth(c Conn) error {
 }
 
 // ServerAuthVNC is the standard password authentication. See 7.2.2.
-type ServerAuthVNC struct{}
+type ServerAuthVNC struct {
+	Challenge []byte
+	Password  []byte
+	Crypted   []byte
+}
 
 func (*ServerAuthVNC) Type() SecurityType {
 	return SecTypeVNC
@@ -279,13 +296,44 @@ func (*ServerAuthVNC) SubType() SecuritySubType {
 	return SecSubTypeUnknown
 }
 
+func (auth *ServerAuthVNC) WriteChallenge(c Conn) error {
+	if err := binary.Write(c, binary.BigEndian, auth.Challenge); err != nil {
+		return err
+	}
+	return c.Flush()
+}
+
+func (auth *ServerAuthVNC) ReadChallenge(c Conn) error {
+	var crypted [16]byte
+	if err := binary.Read(c, binary.BigEndian, &crypted); err != nil {
+		return err
+	}
+	auth.Crypted = crypted[:]
+	return nil
+}
+
 func (auth *ServerAuthVNC) Auth(c Conn) error {
+	if err := auth.WriteChallenge(c); err != nil {
+		return err
+	}
+
+	if err := auth.ReadChallenge(c); err != nil {
+		return err
+	}
+
+	encrypted, err := AuthVNCEncode(auth.Password, auth.Challenge)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(encrypted, auth.Crypted) {
+		return fmt.Errorf("password invalid")
+	}
 	return nil
 }
 
 // ClientAuthVNC is the standard password authentication. See 7.2.2.
 type ClientAuthVNC struct {
-	Challenge [16]byte
+	Challenge []byte
 	Password  []byte
 }
 
@@ -300,25 +348,34 @@ func (auth *ClientAuthVNC) Auth(c Conn) error {
 	if len(auth.Password) == 0 {
 		return fmt.Errorf("Security Handshake failed; no password provided for VNCAuth.")
 	}
-
-	if err := binary.Read(c, binary.BigEndian, auth.Challenge); err != nil {
+	var challenge [16]byte
+	if err := binary.Read(c, binary.BigEndian, &challenge); err != nil {
 		return err
 	}
 
-	auth.encode()
+	crypted, err := AuthVNCEncode(auth.Password, challenge[:])
+	if err != nil {
+		return err
+	}
 
 	// Send the encrypted challenge back to server
-	if err := binary.Write(c, binary.BigEndian, auth.Challenge); err != nil {
+	if err := binary.Write(c, binary.BigEndian, crypted); err != nil {
 		return err
 	}
 
 	return c.Flush()
 }
 
-func (auth *ClientAuthVNC) encode() error {
+func AuthVNCEncode(password []byte, challenge []byte) ([]byte, error) {
+	if len(password) > 8 {
+		return nil, fmt.Errorf("password too long")
+	}
+	if len(challenge) != 16 {
+		return nil, fmt.Errorf("challenge size not 16 byte long")
+	}
 	// Copy password string to 8 byte 0-padded slice
 	key := make([]byte, 8)
-	copy(key, auth.Password)
+	copy(key, password)
 
 	// Each byte of the password needs to be reversed. This is a
 	// non RFC-documented behaviour of VNC clients and servers
@@ -331,11 +388,11 @@ func (auth *ClientAuthVNC) encode() error {
 	// Encrypt challenge with key.
 	cipher, err := des.NewCipher(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for i := 0; i < len(auth.Challenge); i += cipher.BlockSize() {
-		cipher.Encrypt(auth.Challenge[i:i+cipher.BlockSize()], auth.Challenge[i:i+cipher.BlockSize()])
+	for i := 0; i < len(challenge); i += cipher.BlockSize() {
+		cipher.Encrypt(challenge[i:i+cipher.BlockSize()], challenge[i:i+cipher.BlockSize()])
 	}
 
-	return nil
+	return challenge, nil
 }

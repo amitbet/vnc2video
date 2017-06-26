@@ -16,37 +16,44 @@ var DefaultServerMessages = []ServerMessage{
 	&ServerCutText{},
 }
 
+var (
+	DefaultClientHandlers []ClientHandler = []ClientHandler{
+		&DefaultClientVersionHandler{},
+		&DefaultClientSecurityHandler{},
+		&DefaultClientClientInitHandler{},
+		&DefaultClientServerInitHandler{},
+		//		&DefaultClientMessageHandler{},
+	}
+)
+
 func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 	conn, err := NewClientConn(c, cfg)
 	if err != nil {
 		conn.Close()
+		cfg.ErrorCh <- err
 		return nil, err
 	}
 
-	if err := cfg.VersionHandler(cfg, conn); err != nil {
-		conn.Close()
-		return nil, err
+	if len(cfg.Handlers) == 0 {
+		cfg.Handlers = DefaultClientHandlers
 	}
 
-	if err := cfg.SecurityHandler(cfg, conn); err != nil {
-		conn.Close()
-		return nil, err
-	}
-
-	if err := cfg.ClientInitHandler(cfg, conn); err != nil {
-		conn.Close()
-		return nil, err
-	}
-
-	if err := cfg.ServerInitHandler(cfg, conn); err != nil {
-		conn.Close()
-		return nil, err
+	for _, h := range cfg.Handlers {
+		if err := h.Handle(conn); err != nil {
+			conn.Close()
+			cfg.ErrorCh <- err
+			return nil, err
+		}
 	}
 
 	return conn, nil
 }
 
 var _ Conn = (*ClientConn)(nil)
+
+func (c *ClientConn) Config() interface{} {
+	return c.cfg
+}
 
 func (c *ClientConn) Conn() net.Conn {
 	return c.c
@@ -89,13 +96,13 @@ func (c *ClientConn) ColorMap() *ColorMap {
 func (c *ClientConn) SetColorMap(cm *ColorMap) {
 	c.colorMap = cm
 }
-func (c *ClientConn) DesktopName() string {
+func (c *ClientConn) DesktopName() []byte {
 	return c.desktopName
 }
 func (c *ClientConn) PixelFormat() *PixelFormat {
 	return c.pixelFormat
 }
-func (c *ClientConn) SetDesktopName(name string) {
+func (c *ClientConn) SetDesktopName(name []byte) {
 	c.desktopName = name
 }
 func (c *ClientConn) SetPixelFormat(pf *PixelFormat) error {
@@ -136,7 +143,7 @@ type ClientConn struct {
 	colorMap *ColorMap
 
 	// Name associated with the desktop, sent from the server.
-	desktopName string
+	desktopName []byte
 
 	// Encodings supported by the client. This should not be modified
 	// directly. Instead, SetEncodings() should be used.
@@ -153,7 +160,8 @@ type ClientConn struct {
 	// SetPixelFormat method.
 	pixelFormat *PixelFormat
 
-	quit chan struct{}
+	quitCh  chan struct{}
+	errorCh chan error
 }
 
 func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
@@ -169,7 +177,8 @@ func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 		br:          bufio.NewReader(c),
 		bw:          bufio.NewWriter(c),
 		encodings:   cfg.Encodings,
-		quit:        make(chan struct{}),
+		quitCh:      cfg.QuitCh,
+		errorCh:     cfg.ErrorCh,
 		pixelFormat: cfg.PixelFormat,
 	}, nil
 }
@@ -422,76 +431,82 @@ func (msg *ClientCutText) Write(c Conn) error {
 	return c.Flush()
 }
 
-// ListenAndHandle listens to a VNC server and handles server messages.
-func (c *ClientConn) Handle() error {
+type DefaultClientMessageHandler struct{}
+
+//  listens to a VNC server and handles server messages.
+func (*DefaultClientMessageHandler) Handle(c Conn) error {
+	cfg := c.Config().(*ClientConfig)
 	var err error
 	var wg sync.WaitGroup
 	wg.Add(2)
 	defer c.Close()
 
 	serverMessages := make(map[ServerMessageType]ServerMessage)
-	for _, m := range c.cfg.ServerMessages {
+	for _, m := range cfg.ServerMessages {
 		serverMessages[m.Type()] = m
 	}
 
-	go func() error {
+	go func() {
 		defer wg.Done()
 		for {
 			select {
-			case msg := <-c.cfg.ClientMessageCh:
+			case msg := <-cfg.ClientMessageCh:
 				if err = msg.Write(c); err != nil {
-					return err
+					cfg.ErrorCh <- err
+					return
 				}
-			case <-c.quit:
-				return nil
 			}
 		}
 	}()
 
-	go func() error {
+	go func() {
 		defer wg.Done()
 		for {
 			select {
-			case <-c.quit:
-				return nil
 			default:
 				var messageType ServerMessageType
 				if err = binary.Read(c, binary.BigEndian, &messageType); err != nil {
-					return err
+					cfg.ErrorCh <- err
+					return
 				}
 
 				msg, ok := serverMessages[messageType]
 				if !ok {
-					return fmt.Errorf("unknown message-type: %v", messageType)
+					err = fmt.Errorf("unknown message-type: %v", messageType)
+					cfg.ErrorCh <- err
+					return
 				}
 
 				parsedMsg, err := msg.Read(c)
 				if err != nil {
-					return err
+					cfg.ErrorCh <- err
+					return
 				}
-				c.cfg.ServerMessageCh <- parsedMsg
+				cfg.ServerMessageCh <- parsedMsg
 			}
 		}
 	}()
+
 	wg.Wait()
-	return err
+	return nil
 }
 
-type ClientHandler func(*ClientConfig, Conn) error
+type ClientHandler interface {
+	Handle(Conn) error
+}
 
 // A ClientConfig structure is used to configure a ClientConn. After
 // one has been passed to initialize a connection, it must not be modified.
 type ClientConfig struct {
-	VersionHandler    ClientHandler
-	SecurityHandler   ClientHandler
-	SecurityHandlers  []SecurityHandler
-	ClientInitHandler ClientHandler
-	ServerInitHandler ClientHandler
-	Encodings         []Encoding
-	PixelFormat       *PixelFormat
-	ColorMap          *ColorMap
-	ClientMessageCh   chan ClientMessage
-	ServerMessageCh   chan ServerMessage
-	Exclusive         bool
-	ServerMessages    []ServerMessage
+	Handlers         []ClientHandler
+	SecurityHandlers []SecurityHandler
+	Encodings        []Encoding
+	PixelFormat      *PixelFormat
+	ColorMap         *ColorMap
+	ClientMessageCh  chan ClientMessage
+	ServerMessageCh  chan ServerMessage
+	Exclusive        bool
+	ServerMessages   []ServerMessage
+	QuitCh           chan struct{}
+	ErrorCh          chan error
 }

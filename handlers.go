@@ -45,7 +45,9 @@ func ParseProtoVersion(pv []byte) (uint, uint, error) {
 	return major, minor, nil
 }
 
-func ClientVersionHandler(cfg *ClientConfig, c Conn) error {
+type DefaultClientVersionHandler struct{}
+
+func (*DefaultClientVersionHandler) Handle(c Conn) error {
 	var version [ProtoVersionLength]byte
 
 	if err := binary.Read(c, binary.BigEndian, &version); err != nil {
@@ -76,7 +78,9 @@ func ClientVersionHandler(cfg *ClientConfig, c Conn) error {
 	return c.Flush()
 }
 
-func ServerVersionHandler(cfg *ServerConfig, c Conn) error {
+type DefaultServerVersionHandler struct{}
+
+func (*DefaultServerVersionHandler) Handle(c Conn) error {
 	var version [ProtoVersionLength]byte
 	if err := binary.Write(c, binary.BigEndian, []byte(ProtoVersion38)); err != nil {
 		return err
@@ -109,7 +113,10 @@ func ServerVersionHandler(cfg *ServerConfig, c Conn) error {
 	return nil
 }
 
-func ClientSecurityHandler(cfg *ClientConfig, c Conn) error {
+type DefaultClientSecurityHandler struct{}
+
+func (*DefaultClientSecurityHandler) Handle(c Conn) error {
+	cfg := c.Config().(*ClientConfig)
 	var numSecurityTypes uint8
 	if err := binary.Read(c, binary.BigEndian, &numSecurityTypes); err != nil {
 		return err
@@ -161,7 +168,10 @@ func ClientSecurityHandler(cfg *ClientConfig, c Conn) error {
 	return nil
 }
 
-func ServerSecurityHandler(cfg *ServerConfig, c Conn) error {
+type DefaultServerSecurityHandler struct{}
+
+func (*DefaultServerSecurityHandler) Handle(c Conn) error {
+	cfg := c.Config().(*ServerConfig)
 	if err := binary.Write(c, binary.BigEndian, uint8(len(cfg.SecurityHandlers))); err != nil {
 		return err
 	}
@@ -220,7 +230,9 @@ func ServerSecurityHandler(cfg *ServerConfig, c Conn) error {
 	return nil
 }
 
-func ClientServerInitHandler(cfg *ClientConfig, c Conn) error {
+type DefaultClientServerInitHandler struct{}
+
+func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	srvInit := &ServerInit{}
 
 	if err := binary.Read(c, binary.BigEndian, &srvInit.FBWidth); err != nil {
@@ -242,42 +254,55 @@ func ClientServerInitHandler(cfg *ClientConfig, c Conn) error {
 	}
 
 	srvInit.NameText = nameText
-	c.SetDesktopName(string(srvInit.NameText))
+	c.SetDesktopName(srvInit.NameText)
 	c.SetWidth(srvInit.FBWidth)
 	c.SetHeight(srvInit.FBHeight)
 	c.SetPixelFormat(&srvInit.PixelFormat)
+
+	if c.Protocol() == "aten" {
+		fmt.Printf("$$$$$$\n")
+		var pad [28]byte
+		/*  12
+		8 byte unknown
+		1 byte IKVMVideoEnable
+		1 byte IKVMKMEnable
+		1 byte IKVMKickEnable
+		1 byte VUSBEnable
+		*/
+		if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
+			return err
+		}
+		fmt.Printf("rrrr\n")
+	}
 	return nil
 }
 
-func ServerServerInitHandler(cfg *ServerConfig, c Conn) error {
-	srvInit := &ServerInit{
-		FBWidth:     c.Width(),
-		FBHeight:    c.Height(),
-		PixelFormat: *c.PixelFormat(),
-		NameLength:  uint32(len(cfg.DesktopName)),
-		NameText:    []byte(cfg.DesktopName),
-	}
+type DefaultServerServerInitHandler struct{}
 
-	if err := binary.Write(c, binary.BigEndian, srvInit.FBWidth); err != nil {
+func (*DefaultServerServerInitHandler) Handle(c Conn) error {
+	if err := binary.Write(c, binary.BigEndian, c.Width()); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, srvInit.FBHeight); err != nil {
+	if err := binary.Write(c, binary.BigEndian, c.Height()); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, srvInit.PixelFormat); err != nil {
+	if err := binary.Write(c, binary.BigEndian, c.PixelFormat()); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, srvInit.NameLength); err != nil {
+	if err := binary.Write(c, binary.BigEndian, uint32(len(c.DesktopName()))); err != nil {
 		return err
 	}
-	if err := binary.Write(c, binary.BigEndian, srvInit.NameText); err != nil {
+	if err := binary.Write(c, binary.BigEndian, []byte(c.DesktopName())); err != nil {
 		return err
 	}
 
 	return c.Flush()
 }
 
-func ClientClientInitHandler(cfg *ClientConfig, c Conn) error {
+type DefaultClientClientInitHandler struct{}
+
+func (*DefaultClientClientInitHandler) Handle(c Conn) error {
+	cfg := c.Config().(*ClientConfig)
 	var shared uint8
 	if cfg.Exclusive {
 		shared = 0
@@ -290,7 +315,9 @@ func ClientClientInitHandler(cfg *ClientConfig, c Conn) error {
 	return c.Flush()
 }
 
-func ServerClientInitHandler(cfg *ServerConfig, c Conn) error {
+type DefaultServerClientInitHandler struct{}
+
+func (*DefaultServerClientInitHandler) Handle(c Conn) error {
 	var shared uint8
 	if err := binary.Read(c, binary.BigEndian, &shared); err != nil {
 		return err

@@ -27,6 +27,10 @@ type ServerInit struct {
 
 var _ Conn = (*ServerConn)(nil)
 
+func (c *ServerConn) Config() interface{} {
+	return c.cfg
+}
+
 func (c *ServerConn) Conn() net.Conn {
 	return c.c
 }
@@ -71,13 +75,13 @@ func (c *ServerConn) ColorMap() *ColorMap {
 func (c *ServerConn) SetColorMap(cm *ColorMap) {
 	c.colorMap = cm
 }
-func (c *ServerConn) DesktopName() string {
+func (c *ServerConn) DesktopName() []byte {
 	return c.desktopName
 }
 func (c *ServerConn) PixelFormat() *PixelFormat {
 	return c.pixelFormat
 }
-func (c *ServerConn) SetDesktopName(name string) {
+func (c *ServerConn) SetDesktopName(name []byte) {
 	c.desktopName = name
 }
 func (c *ServerConn) SetPixelFormat(pf *PixelFormat) error {
@@ -182,7 +186,7 @@ type ServerConn struct {
 	colorMap *ColorMap
 
 	// Name associated with the desktop, sent from the server.
-	desktopName string
+	desktopName []byte
 
 	// Encodings supported by the client. This should not be modified
 	// directly. Instead, SetEncodings() should be used.
@@ -198,28 +202,35 @@ type ServerConn struct {
 	// be modified. If you wish to set a new pixel format, use the
 	// SetPixelFormat method.
 	pixelFormat *PixelFormat
-
-	quit chan struct{}
 }
 
-type ServerHandler func(*ServerConfig, Conn) error
+type ServerHandler interface {
+	Handle(Conn) error
+}
+
+var (
+	DefaultServerHandlers []ServerHandler = []ServerHandler{
+		&DefaultServerVersionHandler{},
+		&DefaultServerSecurityHandler{},
+		&DefaultServerClientInitHandler{},
+		&DefaultServerServerInitHandler{},
+		&DefaultServerMessageHandler{},
+	}
+)
 
 type ServerConfig struct {
-	VersionHandler    ServerHandler
-	SecurityHandler   ServerHandler
-	SecurityHandlers  []SecurityHandler
-	ClientInitHandler ServerHandler
-	ServerInitHandler ServerHandler
-	Encodings         []Encoding
-	PixelFormat       *PixelFormat
-	ColorMap          *ColorMap
-	ClientMessageCh   chan ClientMessage
-	ServerMessageCh   chan ServerMessage
-	ErrorCh           chan error
-	ClientMessages    []ClientMessage
-	DesktopName       []byte
-	Height            uint16
-	Width             uint16
+	Handlers         []ServerHandler
+	SecurityHandlers []SecurityHandler
+	Encodings        []Encoding
+	PixelFormat      *PixelFormat
+	ColorMap         *ColorMap
+	ClientMessageCh  chan ClientMessage
+	ServerMessageCh  chan ServerMessage
+	ClientMessages   []ClientMessage
+	DesktopName      []byte
+	Height           uint16
+	Width            uint16
+	errorCh          chan error
 }
 
 func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
@@ -236,7 +247,7 @@ func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
 		br:          bufio.NewReader(c),
 		bw:          bufio.NewWriter(c),
 		cfg:         cfg,
-		quit:        make(chan struct{}),
+		desktopName: cfg.DesktopName,
 		encodings:   cfg.Encodings,
 		pixelFormat: cfg.PixelFormat,
 		fbWidth:     cfg.Width,
@@ -256,80 +267,69 @@ func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 		if err != nil {
 			continue
 		}
-
-		if err := cfg.VersionHandler(cfg, conn); err != nil {
-			conn.Close()
-			continue
+		if len(cfg.Handlers) == 0 {
+			cfg.Handlers = DefaultServerHandlers
 		}
 
-		if err := cfg.SecurityHandler(cfg, conn); err != nil {
-			conn.Close()
-			continue
+		for _, h := range cfg.Handlers {
+			if err := h.Handle(conn); err != nil {
+				conn.Close()
+				continue
+			}
 		}
-
-		if err := cfg.ClientInitHandler(cfg, conn); err != nil {
-			conn.Close()
-			continue
-		}
-
-		if err := cfg.ServerInitHandler(cfg, conn); err != nil {
-			conn.Close()
-			continue
-		}
-
-		go conn.Handle()
 	}
 }
 
-func (c *ServerConn) Handle() error {
+type DefaultServerMessageHandler struct{}
+
+func (*DefaultServerMessageHandler) Handle(c Conn) error {
+	cfg := c.Config().(*ServerConfig)
 	var err error
 	var wg sync.WaitGroup
 
 	defer c.Close()
 	clientMessages := make(map[ClientMessageType]ClientMessage)
-	for _, m := range c.cfg.ClientMessages {
+	for _, m := range cfg.ClientMessages {
 		clientMessages[m.Type()] = m
 	}
 	wg.Add(2)
 
 	// server
-	go func() error {
+	go func() {
 		defer wg.Done()
 		for {
 			select {
-			case msg := <-c.cfg.ServerMessageCh:
+			case msg := <-cfg.ServerMessageCh:
 				if err = msg.Write(c); err != nil {
-					return err
+					cfg.errorCh <- err
+					return
 				}
-			case <-c.quit:
-				return nil
 			}
 		}
 	}()
 
 	// client
-	go func() error {
+	go func() {
 		defer wg.Done()
 		for {
 			select {
-			case <-c.quit:
-				return nil
 			default:
 				var messageType ClientMessageType
 				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
-					return err
+					cfg.errorCh <- err
+					return
 				}
 				msg, ok := clientMessages[messageType]
 				if !ok {
-					return fmt.Errorf("unsupported message-type: %v", messageType)
-
+					cfg.errorCh <- fmt.Errorf("unsupported message-type: %v", messageType)
+					return
 				}
 				parsedMsg, err := msg.Read(c)
 				if err != nil {
-					fmt.Printf("srv err %s\n", err.Error())
-					return err
+					cfg.errorCh <- err
+					return
 				}
-				c.cfg.ClientMessageCh <- parsedMsg
+				cfg.ClientMessageCh <- parsedMsg
 			}
 		}
 	}()
