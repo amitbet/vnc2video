@@ -294,14 +294,19 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 	}
 	wg.Add(2)
 
+	quit := make(chan struct{})
+
 	// server
 	go func() {
 		defer wg.Done()
 		for {
 			select {
+			case <-quit:
+				return
 			case msg := <-cfg.ServerMessageCh:
 				if err = msg.Write(c); err != nil {
 					cfg.errorCh <- err
+					close(quit)
 					return
 				}
 			}
@@ -313,20 +318,25 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 		defer wg.Done()
 		for {
 			select {
+			case <-quit:
+				return
 			default:
 				var messageType ClientMessageType
 				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
 					cfg.errorCh <- err
+					close(quit)
 					return
 				}
 				msg, ok := clientMessages[messageType]
 				if !ok {
 					cfg.errorCh <- fmt.Errorf("unsupported message-type: %v", messageType)
+					close(quit)
 					return
 				}
 				parsedMsg, err := msg.Read(c)
 				if err != nil {
 					cfg.errorCh <- err
+					close(quit)
 					return
 				}
 				cfg.ClientMessageCh <- parsedMsg

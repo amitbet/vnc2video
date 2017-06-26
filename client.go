@@ -39,7 +39,9 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 	}
 
 	for _, h := range cfg.Handlers {
+		fmt.Printf("%#+v\n", h)
 		if err := h.Handle(conn); err != nil {
+			fmt.Printf("rrr %v\n", err)
 			conn.Close()
 			cfg.ErrorCh <- err
 			return nil, err
