@@ -36,6 +36,7 @@ const (
 	EncJPEGQualityLevelPseudo2       EncodingType = -31
 	EncJPEGQualityLevelPseudo1       EncodingType = -32
 	EncColorPseudo                   EncodingType = -239
+	EncXCursorPseudo                 EncodingType = -240
 	EncDesktopSizePseudo             EncodingType = -223
 	EncLastRectPseudo                EncodingType = -224
 	EncCompressionLevel10            EncodingType = -247
@@ -51,6 +52,7 @@ const (
 	EncQEMUPointerMotionChangePseudo EncodingType = -257
 	EncQEMUExtendedKeyEventPseudo    EncodingType = -258
 	EncTightPng                      EncodingType = -260
+	EncDesktopNamePseudo             EncodingType = -307
 	EncExtendedDesktopSizePseudo     EncodingType = -308
 	EncXvpPseudo                     EncodingType = -309
 	EncFencePseudo                   EncodingType = -312
