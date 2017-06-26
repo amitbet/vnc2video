@@ -73,18 +73,19 @@ func (auth *ClientAuthVNC) Auth(c Conn) error {
 	if len(auth.Password) == 0 {
 		return fmt.Errorf("Security Handshake failed; no password provided for VNCAuth.")
 	}
+
 	var challenge [16]byte
 	if err := binary.Read(c, binary.BigEndian, &challenge); err != nil {
 		return err
 	}
 
-	crypted, err := AuthVNCEncode(auth.Password, challenge[:])
+	encrypted, err := AuthVNCEncode(auth.Password, challenge[:])
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("rrrr\n")
 	// Send the encrypted challenge back to server
-	if err := binary.Write(c, binary.BigEndian, crypted); err != nil {
+	if err := binary.Write(c, binary.BigEndian, encrypted); err != nil {
 		return err
 	}
 
@@ -92,9 +93,6 @@ func (auth *ClientAuthVNC) Auth(c Conn) error {
 }
 
 func AuthVNCEncode(password []byte, challenge []byte) ([]byte, error) {
-	if len(password) > 8 {
-		return nil, fmt.Errorf("password too long")
-	}
 	if len(challenge) != 16 {
 		return nil, fmt.Errorf("challenge size not 16 byte long")
 	}
