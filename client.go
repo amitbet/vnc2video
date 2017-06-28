@@ -22,7 +22,7 @@ var (
 		&DefaultClientSecurityHandler{},
 		&DefaultClientClientInitHandler{},
 		&DefaultClientServerInitHandler{},
-		//		&DefaultClientMessageHandler{},
+		&DefaultClientMessageHandler{},
 	}
 )
 
@@ -39,9 +39,7 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 	}
 
 	for _, h := range cfg.Handlers {
-		fmt.Printf("%#+v\n", h)
 		if err := h.Handle(conn); err != nil {
-			fmt.Printf("rrr %v\n", err)
 			conn.Close()
 			cfg.ErrorCh <- err
 			return nil, err
@@ -55,6 +53,10 @@ var _ Conn = (*ClientConn)(nil)
 
 func (c *ClientConn) Config() interface{} {
 	return c.cfg
+}
+
+func (c *ClientConn) Wait() {
+	<-c.quit
 }
 
 func (c *ClientConn) Conn() net.Conn {
@@ -80,6 +82,10 @@ func (c *ClientConn) Flush() error {
 }
 
 func (c *ClientConn) Close() error {
+	if c.quit != nil {
+		close(c.quit)
+		c.quit = nil
+	}
 	return c.c.Close()
 }
 
@@ -163,13 +169,11 @@ type ClientConn struct {
 	pixelFormat *PixelFormat
 
 	quitCh  chan struct{}
+	quit    chan struct{}
 	errorCh chan error
 }
 
 func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
-	if cfg.ServerMessages == nil {
-		return nil, fmt.Errorf("ServerMessages cannel is nil")
-	}
 	if len(cfg.Encodings) == 0 {
 		return nil, fmt.Errorf("client can't handle encodings")
 	}
@@ -182,6 +186,7 @@ func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 		quitCh:      cfg.QuitCh,
 		errorCh:     cfg.ErrorCh,
 		pixelFormat: cfg.PixelFormat,
+		quit:        make(chan struct{}),
 	}, nil
 }
 
@@ -471,14 +476,12 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 					cfg.ErrorCh <- err
 					return
 				}
-
 				msg, ok := serverMessages[messageType]
 				if !ok {
 					err = fmt.Errorf("unknown message-type: %v", messageType)
 					cfg.ErrorCh <- err
 					return
 				}
-
 				parsedMsg, err := msg.Read(c)
 				if err != nil {
 					cfg.ErrorCh <- err
@@ -511,4 +514,5 @@ type ClientConfig struct {
 	ServerMessages   []ServerMessage
 	QuitCh           chan struct{}
 	ErrorCh          chan error
+	quit             chan struct{}
 }

@@ -83,7 +83,6 @@ func (auth *ClientAuthVNC) Auth(c Conn) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("rrrr\n")
 	// Send the encrypted challenge back to server
 	if err := binary.Write(c, binary.BigEndian, encrypted); err != nil {
 		return err

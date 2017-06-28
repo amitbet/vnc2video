@@ -25,6 +25,10 @@ type ServerInit struct {
 	NameText          []byte
 }
 
+func (srvInit *ServerInit) String() string {
+	return fmt.Sprintf("Width: %d, Height: %d, PixelFormat: %s, Name: %s", srvInit.FBWidth, srvInit.FBHeight, &srvInit.PixelFormat, srvInit.NameText)
+}
+
 var _ Conn = (*ServerConn)(nil)
 
 func (c *ServerConn) Config() interface{} {
@@ -33,6 +37,10 @@ func (c *ServerConn) Config() interface{} {
 
 func (c *ServerConn) Conn() net.Conn {
 	return c.c
+}
+
+func (c *ServerConn) Wait() {
+	<-c.quit
 }
 
 func (c *ServerConn) SetEncodings(encs []EncodingType) error {
@@ -57,6 +65,10 @@ func (c *ServerConn) Flush() error {
 }
 
 func (c *ServerConn) Close() error {
+	if c.quit != nil {
+		close(c.quit)
+		c.quit = nil
+	}
 	return c.c.Close()
 }
 
@@ -202,6 +214,8 @@ type ServerConn struct {
 	// be modified. If you wish to set a new pixel format, use the
 	// SetPixelFormat method.
 	pixelFormat *PixelFormat
+
+	quit chan struct{}
 }
 
 type ServerHandler interface {
@@ -234,14 +248,6 @@ type ServerConfig struct {
 }
 
 func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
-	if cfg.ClientMessageCh == nil {
-		return nil, fmt.Errorf("ClientMessageCh nil")
-	}
-
-	if len(cfg.ClientMessages) == 0 {
-		return nil, fmt.Errorf("ClientMessage 0")
-	}
-
 	return &ServerConn{
 		c:           c,
 		br:          bufio.NewReader(c),
@@ -252,6 +258,7 @@ func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
 		pixelFormat: cfg.PixelFormat,
 		fbWidth:     cfg.Width,
 		fbHeight:    cfg.Height,
+		quit:        make(chan struct{}),
 	}, nil
 }
 
@@ -274,7 +281,7 @@ func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 		for _, h := range cfg.Handlers {
 			if err := h.Handle(conn); err != nil {
 				conn.Close()
-				continue
+				break
 			}
 		}
 	}
@@ -306,7 +313,10 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 			case msg := <-cfg.ServerMessageCh:
 				if err = msg.Write(c); err != nil {
 					cfg.errorCh <- err
-					close(quit)
+					if quit != nil {
+						close(quit)
+						quit = nil
+					}
 					return
 				}
 			}
@@ -324,7 +334,10 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 				var messageType ClientMessageType
 				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
 					cfg.errorCh <- err
-					close(quit)
+					if quit != nil {
+						close(quit)
+						quit = nil
+					}
 					return
 				}
 				msg, ok := clientMessages[messageType]
@@ -336,7 +349,10 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 				parsedMsg, err := msg.Read(c)
 				if err != nil {
 					cfg.errorCh <- err
-					close(quit)
+					if quit != nil {
+						close(quit)
+						quit = nil
+					}
 					return
 				}
 				cfg.ClientMessageCh <- parsedMsg

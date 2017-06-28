@@ -134,7 +134,7 @@ func (pf *PixelFormat) Unmarshal(data []byte) error {
 
 // String implements the fmt.Stringer interface.
 func (pf *PixelFormat) String() string {
-	return fmt.Sprintf("{ bpp: %d depth: %d big-endian: %s true-color: %s red-max: %d green-max: %d blue-max: %d red-shift: %d green-shift: %d blue-shift: %d }",
+	return fmt.Sprintf("{ bpp: %d depth: %d big-endian: %d true-color: %d red-max: %d green-max: %d blue-max: %d red-shift: %d green-shift: %d blue-shift: %d }",
 		pf.BPP, pf.Depth, pf.BigEndian, pf.TrueColor, pf.RedMax, pf.GreenMax, pf.BlueMax, pf.RedShift, pf.GreenShift, pf.BlueShift)
 }
 

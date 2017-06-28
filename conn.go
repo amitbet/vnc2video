@@ -23,5 +23,6 @@ type Conn interface {
 	DesktopName() []byte
 	SetDesktopName([]byte)
 	Flush() error
+	Wait()
 	SetProtoVersion(string)
 }

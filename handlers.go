@@ -91,7 +91,6 @@ func (*DefaultServerVersionHandler) Handle(c Conn) error {
 	if err := binary.Read(c, binary.BigEndian, &version); err != nil {
 		return err
 	}
-
 	major, minor, err := ParseProtoVersion(version[:])
 	if err != nil {
 		return err
@@ -259,20 +258,50 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	c.SetHeight(srvInit.FBHeight)
 	c.SetPixelFormat(&srvInit.PixelFormat)
 
+	fmt.Printf("%s\n", srvInit)
 	if c.Protocol() == "aten" {
-		fmt.Printf("$$$$$$\n")
-		var pad [28]byte
-		/*  12
-		8 byte unknown
-		1 byte IKVMVideoEnable
-		1 byte IKVMKMEnable
-		1 byte IKVMKickEnable
-		1 byte VUSBEnable
-		*/
-		if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
+		ikvm := struct {
+			_               [8]byte
+			IKVMVideoEnable uint8
+			IKVMKMEnable    uint8
+			IKVMKickEnable  uint8
+			VUSBEnable      uint8
+		}{}
+		if err := binary.Read(c, binary.BigEndian, &ikvm); err != nil {
 			return err
 		}
-		fmt.Printf("rrrr\n")
+		caps := struct {
+			ServerMessagesNum uint16
+			ClientMessagesNum uint16
+			EncodingsNum      uint16
+			_                 [2]byte
+		}{}
+		if err := binary.Read(c, binary.BigEndian, &caps); err != nil {
+			return err
+		}
+
+		caps.ServerMessagesNum = uint16(1)
+		var item [16]byte
+		for i := uint16(0); i < caps.ServerMessagesNum; i++ {
+			if err := binary.Read(c, binary.BigEndian, &item); err != nil {
+				return err
+			}
+			fmt.Printf("server message cap %s\n", item)
+		}
+		/*
+			for i := uint16(0); i < caps.ClientMessagesNum; i++ {
+				if err := binary.Read(c, binary.BigEndian, &item); err != nil {
+					return err
+				}
+				fmt.Printf("client message cap %s\n", item)
+			}
+			for i := uint16(0); i < caps.EncodingsNum; i++ {
+				if err := binary.Read(c, binary.BigEndian, &item); err != nil {
+					return err
+				}
+				fmt.Printf("encoding cap %s\n", item)
+			}
+		*/
 	}
 	return nil
 }
@@ -295,7 +324,6 @@ func (*DefaultServerServerInitHandler) Handle(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, []byte(c.DesktopName())); err != nil {
 		return err
 	}
-
 	return c.Flush()
 }
 

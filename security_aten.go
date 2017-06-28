@@ -1,6 +1,7 @@
 package vnc
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -30,29 +31,68 @@ func charCodeAt(s string, n int) rune {
 func (auth *ClientAuthATEN) Auth(c Conn) error {
 	var definedAuthLen = 24
 
+	if len(auth.Username) > definedAuthLen || len(auth.Password) > definedAuthLen {
+		return fmt.Errorf("username/password is too long, allowed 0-23")
+	}
+
 	nt, err := readTightTunnels(c)
 	if err != nil {
 		return err
 	}
-	if (nt&0xffff0ff0)>>0 == 0xaff90fb0 {
+	/*
+		fmt.Printf("tunnels %d\n", nt)
+		for i := uint32(0); i < nt; i++ {
+			code, vendor, signature, err := readTightCaps(c)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("code %d vendor %s signature %s\n", code, vendor, signature)
+		}
+	*/
+	if ((nt&0xffff0ff0)>>0 == 0xaff90fb0) || (nt <= 0 || nt > 0x1000000) {
 		c.SetProtoVersion("aten")
 		var skip [20]byte
 		binary.Read(c, binary.BigEndian, &skip)
-		fmt.Printf("skip %s\n", skip)
+		fmt.Printf("skip %v\n", skip)
+	}
+
+	username := make([]byte, definedAuthLen)
+	password := make([]byte, definedAuthLen)
+	copy(username, auth.Username)
+	copy(password, auth.Password)
+	challenge := bytes.Join([][]byte{username, password}, []byte(""))
+	if err := binary.Write(c, binary.BigEndian, challenge); err != nil {
+		return err
+	}
+
+	if err := c.Flush(); err != nil {
+		return err
 	}
 	/*
-		if len(auth.Username) > 24 || len(auth.Password) > 24 {
-			return fmt.Errorf("username/password > 24")
+
+		sendUsername := make([]byte, definedAuthLen)
+		for i := 0; i < definedAuthLen; i++ {
+			if i < len(auth.Username) {
+				sendUsername[i] = byte(charCodeAt(string(auth.Username), i))
+			} else {
+				sendUsername[i] = 0
+			}
 		}
 
-		username := make([]byte, 24-len(auth.Username)+1)
-		password := make([]byte, 24-len(auth.Password)+1)
-		copy(username, auth.Username)
-		copy(password, auth.Password)
-		username = append(username, []byte("\x00")...)
-		password = append(password, []byte("\x00")...)
-		challenge := bytes.Join([][]byte{username, password}, []byte(":"))
-		if err := binary.Write(c, binary.BigEndian, challenge); err != nil {
+		sendPassword := make([]byte, definedAuthLen)
+
+		for i := 0; i < definedAuthLen; i++ {
+			if i < len(auth.Password) {
+				sendPassword[i] = byte(charCodeAt(string(auth.Password), i))
+			} else {
+				sendPassword[i] = 0
+			}
+		}
+
+		if err := binary.Write(c, binary.BigEndian, sendUsername); err != nil {
+			return err
+		}
+		if err := binary.Write(c, binary.BigEndian, sendPassword); err != nil {
 			return err
 		}
 
@@ -60,36 +100,6 @@ func (auth *ClientAuthATEN) Auth(c Conn) error {
 			return err
 		}
 	*/
-	sendUsername := make([]byte, definedAuthLen)
-	for i := 0; i < definedAuthLen; i++ {
-		if i < len(auth.Username) {
-			sendUsername[i] = byte(charCodeAt(string(auth.Username), i))
-		} else {
-			sendUsername[i] = 0
-		}
-	}
-
-	sendPassword := make([]byte, definedAuthLen)
-
-	for i := 0; i < definedAuthLen; i++ {
-		if i < len(auth.Password) {
-			sendPassword[i] = byte(charCodeAt(string(auth.Password), i))
-		} else {
-			sendPassword[i] = 0
-		}
-	}
-
-	if err := binary.Write(c, binary.BigEndian, sendUsername); err != nil {
-		return err
-	}
-	if err := binary.Write(c, binary.BigEndian, sendPassword); err != nil {
-		return err
-	}
-
-	if err := c.Flush(); err != nil {
-		return err
-	}
-
 	//var pp [10]byte
 	//binary.Read(c, binary.BigEndian, &pp)
 	//fmt.Printf("ddd %v\n", pp)
