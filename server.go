@@ -94,7 +94,7 @@ func (c *ServerConn) PixelFormat() *PixelFormat {
 	return c.pixelFormat
 }
 func (c *ServerConn) SetDesktopName(name []byte) {
-	c.desktopName = name
+	copy(c.desktopName, name)
 }
 func (c *ServerConn) SetPixelFormat(pf *PixelFormat) error {
 	c.pixelFormat = pf

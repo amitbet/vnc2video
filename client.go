@@ -86,6 +86,9 @@ func (c *ClientConn) Close() error {
 		close(c.quit)
 		c.quit = nil
 	}
+	if c.quitCh != nil {
+		close(c.quitCh)
+	}
 	return c.c.Close()
 }
 
@@ -111,7 +114,7 @@ func (c *ClientConn) PixelFormat() *PixelFormat {
 	return c.pixelFormat
 }
 func (c *ClientConn) SetDesktopName(name []byte) {
-	c.desktopName = name
+	copy(c.desktopName, name)
 }
 func (c *ClientConn) SetPixelFormat(pf *PixelFormat) error {
 	c.pixelFormat = pf
