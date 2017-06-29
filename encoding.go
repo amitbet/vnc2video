@@ -25,6 +25,11 @@ const (
 	EncJRLE                          EncodingType = 22
 	EncTRLE                          EncodingType = 15
 	EncZRLE                          EncodingType = 16
+	EncAtenAST2100                   EncodingType = 0x57
+	EncAtenASTJPEG                   EncodingType = 0x58
+	EncAtenHermon                    EncodingType = 0x59
+	EncAtenYarkon                    EncodingType = 0x60
+	EncAtenPilot3                    EncodingType = 0x61
 	EncJPEGQualityLevelPseudo10      EncodingType = -23
 	EncJPEGQualityLevelPseudo9       EncodingType = -24
 	EncJPEGQualityLevelPseudo8       EncodingType = -25
@@ -35,7 +40,7 @@ const (
 	EncJPEGQualityLevelPseudo3       EncodingType = -30
 	EncJPEGQualityLevelPseudo2       EncodingType = -31
 	EncJPEGQualityLevelPseudo1       EncodingType = -32
-	EncColorPseudo                   EncodingType = -239
+	EncCursorPseudo                  EncodingType = -239
 	EncXCursorPseudo                 EncodingType = -240
 	EncDesktopSizePseudo             EncodingType = -223
 	EncLastRectPseudo                EncodingType = -224
@@ -55,9 +60,9 @@ const (
 	EncDesktopNamePseudo             EncodingType = -307
 	EncExtendedDesktopSizePseudo     EncodingType = -308
 	EncXvpPseudo                     EncodingType = -309
+	EncClientRedirect                EncodingType = -311
 	EncFencePseudo                   EncodingType = -312
 	EncContinuousUpdatesPseudo       EncodingType = -313
-	EncClientRedirect                EncodingType = -311
 )
 
 var bPool = sync.Pool{

@@ -80,23 +80,23 @@ func (c *ServerConn) Write(buf []byte) (int, error) {
 	return c.bw.Write(buf)
 }
 
-func (c *ServerConn) ColorMap() *ColorMap {
+func (c *ServerConn) ColorMap() ColorMap {
 	return c.colorMap
 }
 
-func (c *ServerConn) SetColorMap(cm *ColorMap) {
+func (c *ServerConn) SetColorMap(cm ColorMap) {
 	c.colorMap = cm
 }
 func (c *ServerConn) DesktopName() []byte {
 	return c.desktopName
 }
-func (c *ServerConn) PixelFormat() *PixelFormat {
+func (c *ServerConn) PixelFormat() PixelFormat {
 	return c.pixelFormat
 }
 func (c *ServerConn) SetDesktopName(name []byte) {
 	copy(c.desktopName, name)
 }
-func (c *ServerConn) SetPixelFormat(pf *PixelFormat) error {
+func (c *ServerConn) SetPixelFormat(pf PixelFormat) error {
 	c.pixelFormat = pf
 	return nil
 }
@@ -139,6 +139,10 @@ type FramebufferUpdate struct {
 	_       [1]byte      // pad
 	NumRect uint16       // number-of-rectangles
 	Rects   []*Rectangle // rectangles
+}
+
+func (msg *FramebufferUpdate) String() string {
+	return fmt.Sprintf("rects %d rectangle[]: { %v }", msg.NumRect, msg.Rects)
 }
 
 func (*FramebufferUpdate) Type() ServerMessageType {
@@ -195,7 +199,7 @@ type ServerConn struct {
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
 	// Definition in §5 - Representation of Pixel Data.
-	colorMap *ColorMap
+	colorMap ColorMap
 
 	// Name associated with the desktop, sent from the server.
 	desktopName []byte
@@ -213,7 +217,7 @@ type ServerConn struct {
 	// The pixel format associated with the connection. This shouldn't
 	// be modified. If you wish to set a new pixel format, use the
 	// SetPixelFormat method.
-	pixelFormat *PixelFormat
+	pixelFormat PixelFormat
 
 	quit chan struct{}
 }
@@ -236,15 +240,15 @@ type ServerConfig struct {
 	Handlers         []ServerHandler
 	SecurityHandlers []SecurityHandler
 	Encodings        []Encoding
-	PixelFormat      *PixelFormat
-	ColorMap         *ColorMap
+	PixelFormat      PixelFormat
+	ColorMap         ColorMap
 	ClientMessageCh  chan ClientMessage
 	ServerMessageCh  chan ServerMessage
 	ClientMessages   []ClientMessage
 	DesktopName      []byte
 	Height           uint16
 	Width            uint16
-	errorCh          chan error
+	ErrorCh          chan error
 }
 
 func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
@@ -272,16 +276,20 @@ func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 
 		conn, err := NewServerConn(c, cfg)
 		if err != nil {
+			cfg.ErrorCh <- err
 			continue
 		}
+
 		if len(cfg.Handlers) == 0 {
 			cfg.Handlers = DefaultServerHandlers
 		}
 
+	handlerLoop:
 		for _, h := range cfg.Handlers {
 			if err := h.Handle(conn); err != nil {
+				cfg.ErrorCh <- err
 				conn.Close()
-				break
+				break handlerLoop
 			}
 		}
 	}
@@ -312,7 +320,7 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 				return
 			case msg := <-cfg.ServerMessageCh:
 				if err = msg.Write(c); err != nil {
-					cfg.errorCh <- err
+					cfg.ErrorCh <- err
 					if quit != nil {
 						close(quit)
 						quit = nil
@@ -333,7 +341,7 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 			default:
 				var messageType ClientMessageType
 				if err := binary.Read(c, binary.BigEndian, &messageType); err != nil {
-					cfg.errorCh <- err
+					cfg.ErrorCh <- err
 					if quit != nil {
 						close(quit)
 						quit = nil
@@ -342,13 +350,13 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 				}
 				msg, ok := clientMessages[messageType]
 				if !ok {
-					cfg.errorCh <- fmt.Errorf("unsupported message-type: %v", messageType)
+					cfg.ErrorCh <- fmt.Errorf("unsupported message-type: %v", messageType)
 					close(quit)
 					return
 				}
 				parsedMsg, err := msg.Read(c)
 				if err != nil {
-					cfg.errorCh <- err
+					cfg.ErrorCh <- err
 					if quit != nil {
 						close(quit)
 						quit = nil
@@ -368,6 +376,10 @@ type ServerCutText struct {
 	_      [1]byte
 	Length uint32
 	Text   []byte
+}
+
+func (msg *ServerCutText) String() string {
+	return fmt.Sprintf("lenght: %d text: %s", msg.Length, msg.Text)
 }
 
 func (*ServerCutText) Type() ServerMessageType {
@@ -417,6 +429,10 @@ func (msg *ServerCutText) Write(c Conn) error {
 
 type Bell struct{}
 
+func (*Bell) String() string {
+	return fmt.Sprintf("bell")
+}
+
 func (*Bell) Type() ServerMessageType {
 	return BellMsgType
 }
@@ -437,6 +453,10 @@ type SetColorMapEntries struct {
 	FirstColor uint16
 	ColorsNum  uint16
 	Colors     []Color
+}
+
+func (msg *SetColorMapEntries) String() string {
+	return fmt.Sprintf("first color: %d, numcolors: %d, colors[]: { %v }", msg.FirstColor, msg.ColorsNum, msg.Colors)
 }
 
 func (*SetColorMapEntries) Type() ServerMessageType {

@@ -23,7 +23,7 @@ func (enc *RawEncoding) Read(c Conn, rect *Rectangle) error {
 Loop:
 	for y := uint16(0); y < rect.Height; y++ {
 		for x := uint16(0); x < rect.Width; x++ {
-			color := NewColor(pf, cm)
+			color := NewColor(&pf, &cm)
 			if err = color.Read(c); err != nil {
 				break Loop
 			}

@@ -7,6 +7,7 @@ import (
 
 // ClientMessage is the interface
 type ClientMessage interface {
+	String() string
 	Type() ClientMessageType
 	Read(Conn) (ClientMessage, error)
 	Write(Conn) error
@@ -14,6 +15,7 @@ type ClientMessage interface {
 
 // ServerMessage is the interface
 type ServerMessage interface {
+	String() string
 	Type() ServerMessageType
 	Read(Conn) (ServerMessage, error)
 	Write(Conn) error
@@ -253,7 +255,7 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	c.SetDesktopName(srvInit.NameText)
 	c.SetWidth(srvInit.FBWidth)
 	c.SetHeight(srvInit.FBHeight)
-	c.SetPixelFormat(&srvInit.PixelFormat)
+	c.SetPixelFormat(srvInit.PixelFormat)
 
 	if c.Protocol() == "aten" {
 		ikvm := struct {

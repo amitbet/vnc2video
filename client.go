@@ -100,23 +100,23 @@ func (c *ClientConn) Write(buf []byte) (int, error) {
 	return c.bw.Write(buf)
 }
 
-func (c *ClientConn) ColorMap() *ColorMap {
+func (c *ClientConn) ColorMap() ColorMap {
 	return c.colorMap
 }
 
-func (c *ClientConn) SetColorMap(cm *ColorMap) {
+func (c *ClientConn) SetColorMap(cm ColorMap) {
 	c.colorMap = cm
 }
 func (c *ClientConn) DesktopName() []byte {
 	return c.desktopName
 }
-func (c *ClientConn) PixelFormat() *PixelFormat {
+func (c *ClientConn) PixelFormat() PixelFormat {
 	return c.pixelFormat
 }
 func (c *ClientConn) SetDesktopName(name []byte) {
 	copy(c.desktopName, name)
 }
-func (c *ClientConn) SetPixelFormat(pf *PixelFormat) error {
+func (c *ClientConn) SetPixelFormat(pf PixelFormat) error {
 	c.pixelFormat = pf
 	return nil
 }
@@ -151,7 +151,7 @@ type ClientConn struct {
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
 	// Definition in §5 - Representation of Pixel Data.
-	colorMap *ColorMap
+	colorMap ColorMap
 
 	// Name associated with the desktop, sent from the server.
 	desktopName []byte
@@ -169,7 +169,7 @@ type ClientConn struct {
 	// The pixel format associated with the connection. This shouldn't
 	// be modified. If you wish to set a new pixel format, use the
 	// SetPixelFormat method.
-	pixelFormat *PixelFormat
+	pixelFormat PixelFormat
 
 	quitCh  chan struct{}
 	quit    chan struct{}
@@ -215,6 +215,10 @@ type SetPixelFormat struct {
 	PF PixelFormat // pixel-format
 }
 
+func (msg *SetPixelFormat) String() string {
+	return fmt.Sprintf("%s", msg.PF)
+}
+
 func (*SetPixelFormat) Type() ClientMessageType {
 	return SetPixelFormatMsgType
 }
@@ -231,7 +235,7 @@ func (msg *SetPixelFormat) Write(c Conn) error {
 	pf := c.PixelFormat()
 	// Invalidate the color map.
 	if pf.TrueColor != 1 {
-		c.SetColorMap(&ColorMap{})
+		c.SetColorMap(ColorMap{})
 	}
 
 	return c.Flush()
@@ -250,6 +254,10 @@ type SetEncodings struct {
 	_         [1]byte // padding
 	EncNum    uint16  // number-of-encodings
 	Encodings []EncodingType
+}
+
+func (msg *SetEncodings) String() string {
+	return fmt.Sprintf("encnum: %d, encodings[]: { %v }", msg.EncNum, msg.Encodings)
 }
 
 func (*SetEncodings) Type() ClientMessageType {
@@ -308,6 +316,10 @@ type FramebufferUpdateRequest struct {
 	Width, Height uint16 // width, height
 }
 
+func (msg *FramebufferUpdateRequest) String() string {
+	return fmt.Sprintf("incremental: %d, x: %d, y: %d, width: %d, height: %d", msg.Inc, msg.X, msg.Y, msg.Width, msg.Height)
+}
+
 func (*FramebufferUpdateRequest) Type() ClientMessageType {
 	return FramebufferUpdateRequestMsgType
 }
@@ -335,6 +347,10 @@ type KeyEvent struct {
 	Down uint8   // down-flag
 	_    [2]byte // padding
 	Key  Key     // key
+}
+
+func (msg *KeyEvent) String() string {
+	return fmt.Sprintf("down: %d, key: %v", msg.Down, msg.Key)
 }
 
 func (*KeyEvent) Type() ClientMessageType {
@@ -365,6 +381,10 @@ type PointerEvent struct {
 	X, Y uint16 // x-, y-position
 }
 
+func (msg *PointerEvent) String() string {
+	return fmt.Sprintf("mask %d, x: %d, y: %d", msg.Mask, msg.X, msg.Y)
+}
+
 func (*PointerEvent) Type() ClientMessageType {
 	return PointerEventMsgType
 }
@@ -392,6 +412,10 @@ type ClientCutText struct {
 	_      [3]byte // padding
 	Length uint32  // length
 	Text   []byte
+}
+
+func (msg *ClientCutText) String() string {
+	return fmt.Sprintf("length: %d, text: %s", msg.Length, msg.Text)
 }
 
 func (*ClientCutText) Type() ClientMessageType {
@@ -509,8 +533,8 @@ type ClientConfig struct {
 	Handlers         []ClientHandler
 	SecurityHandlers []SecurityHandler
 	Encodings        []Encoding
-	PixelFormat      *PixelFormat
-	ColorMap         *ColorMap
+	PixelFormat      PixelFormat
+	ColorMap         ColorMap
 	ClientMessageCh  chan ClientMessage
 	ServerMessageCh  chan ServerMessage
 	Exclusive        bool
