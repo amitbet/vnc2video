@@ -220,6 +220,12 @@ func (r *Rectangle) Read(c Conn) error {
 		r.Enc = &TightPngEncoding{}
 	case EncRaw:
 		r.Enc = &RawEncoding{}
+	case EncDesktopSizePseudo:
+		r.Enc = &DesktopSizePseudoEncoding{}
+	case EncDesktopNamePseudo:
+		r.Enc = &DesktopNamePseudoEncoding{}
+	case EncXCursorPseudo:
+		r.Enc = &XCursorPseudoEncoding{}
 	default:
 		return fmt.Errorf("unsupported encoding %s", r.EncType)
 	}
