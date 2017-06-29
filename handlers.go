@@ -205,16 +205,14 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 	if authErr != nil {
 		authCode = uint32(1)
 	}
-
 	if err := binary.Write(c, binary.BigEndian, authCode); err != nil {
 		return err
 	}
 	if err := c.Flush(); err != nil {
 		return err
 	}
-
 	if authErr != nil {
-		if err := binary.Write(c, binary.BigEndian, len(authErr.Error())); err != nil {
+		if err := binary.Write(c, binary.BigEndian, uint32(len(authErr.Error()))); err != nil {
 			return err
 		}
 		if err := binary.Write(c, binary.BigEndian, []byte(authErr.Error())); err != nil {
@@ -225,14 +223,13 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 		}
 		return authErr
 	}
-
 	return nil
 }
 
 type DefaultClientServerInitHandler struct{}
 
 func (*DefaultClientServerInitHandler) Handle(c Conn) error {
-	srvInit := &ServerInit{}
+	srvInit := ServerInit{}
 
 	if err := binary.Read(c, binary.BigEndian, &srvInit.FBWidth); err != nil {
 		return err
@@ -258,7 +255,6 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	c.SetHeight(srvInit.FBHeight)
 	c.SetPixelFormat(&srvInit.PixelFormat)
 
-	fmt.Printf("%s\n", srvInit)
 	if c.Protocol() == "aten" {
 		ikvm := struct {
 			_               [8]byte
