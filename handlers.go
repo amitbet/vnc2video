@@ -246,16 +246,18 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 		return err
 	}
 
-	nameText := make([]byte, srvInit.NameLength)
-	if err := binary.Read(c, binary.BigEndian, nameText); err != nil {
+	srvInit.NameText = make([]byte, srvInit.NameLength)
+	if err := binary.Read(c, binary.BigEndian, &srvInit.NameText); err != nil {
 		return err
 	}
-
-	srvInit.NameText = nameText
 	c.SetDesktopName(srvInit.NameText)
 	c.SetWidth(srvInit.FBWidth)
 	c.SetHeight(srvInit.FBHeight)
-	c.SetPixelFormat(srvInit.PixelFormat)
+	if c.Protocol() == "aten" {
+		c.SetPixelFormat(NewPixelFormatAten())
+	} else {
+		c.SetPixelFormat(srvInit.PixelFormat)
+	}
 
 	if c.Protocol() == "aten" {
 		ikvm := struct {
@@ -278,13 +280,13 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 			return err
 		}
 
-		caps.ServerMessagesNum = uint16(1)
+		caps.ServerMessagesNum = uint16(16)
 		var item [16]byte
 		for i := uint16(0); i < caps.ServerMessagesNum; i++ {
 			if err := binary.Read(c, binary.BigEndian, &item); err != nil {
 				return err
 			}
-			fmt.Printf("server message cap %s\n", item)
+			fmt.Printf("server message cap %v\n", item)
 		}
 		/*
 			for i := uint16(0); i < caps.ClientMessagesNum; i++ {
@@ -300,6 +302,10 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 				fmt.Printf("encoding cap %s\n", item)
 			}
 		*/
+		var pad [1]byte
+		if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
+			return err
+		}
 	}
 	return nil
 }

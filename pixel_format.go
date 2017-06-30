@@ -13,6 +13,7 @@ var (
 	PixelFormat8bit  PixelFormat = NewPixelFormat(8)
 	PixelFormat16bit PixelFormat = NewPixelFormat(16)
 	PixelFormat32bit PixelFormat = NewPixelFormat(32)
+	PixelFormatAten  PixelFormat = NewPixelFormatAten()
 )
 
 // PixelFormat describes the way a pixel is formatted for a VNC connection.
@@ -72,6 +73,10 @@ func NewPixelFormat(bpp uint8) PixelFormat {
 		rs, gs, bs = 16, 8, 0
 	}
 	return PixelFormat{bpp, depth, bigEndian, tc, rMax, gMax, bMax, rs, gs, bs, [3]byte{}}
+}
+
+func NewPixelFormatAten() PixelFormat {
+	return PixelFormat{16, 15, 0, 1, (1 << 5) - 1, (1 << 5) - 1, (1 << 5) - 1, 10, 5, 0, [3]byte{}}
 }
 
 // Marshal implements the Marshaler interface.

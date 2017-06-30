@@ -35,6 +35,10 @@ type Rectangle struct {
 	Enc           Encoding
 }
 
+func (rect *Rectangle) String() string {
+	return fmt.Sprintf("rect x: %d, y: %d, width: %d, height: %d, enc: %s", rect.X, rect.Y, rect.Width, rect.Height, rect.EncType)
+}
+
 func NewRectangle() *Rectangle {
 	return &Rectangle{}
 }
@@ -195,7 +199,6 @@ func (r *Rectangle) Write(c Conn) error {
 
 func (r *Rectangle) Read(c Conn) error {
 	var err error
-
 	if err = binary.Read(c, binary.BigEndian, &r.X); err != nil {
 		return err
 	}
@@ -219,13 +222,19 @@ func (r *Rectangle) Read(c Conn) error {
 	case EncTightPng:
 		r.Enc = &TightPngEncoding{}
 	case EncRaw:
-		r.Enc = &RawEncoding{}
+		if c.Protocol() == "aten" {
+			r.Enc = &AtenHermon{}
+		} else {
+			r.Enc = &RawEncoding{}
+		}
 	case EncDesktopSizePseudo:
 		r.Enc = &DesktopSizePseudoEncoding{}
 	case EncDesktopNamePseudo:
 		r.Enc = &DesktopNamePseudoEncoding{}
 	case EncXCursorPseudo:
 		r.Enc = &XCursorPseudoEncoding{}
+	case EncAtenHermon:
+		r.Enc = &AtenHermon{}
 	default:
 		return fmt.Errorf("unsupported encoding %s", r.EncType)
 	}

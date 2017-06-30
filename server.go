@@ -25,8 +25,8 @@ type ServerInit struct {
 	NameText          []byte
 }
 
-func (srvInit *ServerInit) String() string {
-	return fmt.Sprintf("Width: %d, Height: %d, PixelFormat: %s, Name: %s", srvInit.FBWidth, srvInit.FBHeight, &srvInit.PixelFormat, srvInit.NameText)
+func (srvInit ServerInit) String() string {
+	return fmt.Sprintf("Width: %d, Height: %d, PixelFormat: %s, NameLength: %d, MameText: %s", srvInit.FBWidth, srvInit.FBHeight, srvInit.PixelFormat, srvInit.NameLength, srvInit.NameText)
 }
 
 var _ Conn = (*ServerConn)(nil)
@@ -159,8 +159,9 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 	if err := binary.Read(c, binary.BigEndian, &msg.NumRect); err != nil {
 		return nil, err
 	}
+	fmt.Printf("fb update %s\n", msg)
 	for i := uint16(0); i < msg.NumRect; i++ {
-		rect := &Rectangle{}
+		rect := NewRectangle()
 		if err := rect.Read(c); err != nil {
 			return nil, err
 		}
