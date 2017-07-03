@@ -2,6 +2,7 @@ package vnc
 
 import (
 	"bytes"
+	"image"
 	"sync"
 )
 
@@ -11,8 +12,11 @@ type EncodingType int32
 //go:generate stringer -type=EncodingType
 
 const (
-	EncRaw                           EncodingType = 0
-	EncCopyRect                      EncodingType = 1
+	// EncRaw raw encoding
+	EncRaw EncodingType = 0
+	// EncCopyRect copyrect encoding
+	EncCopyRect EncodingType = 1
+
 	EncRRE                           EncodingType = 2
 	EncCoRRE                         EncodingType = 4
 	EncHextile                       EncodingType = 5
@@ -74,6 +78,7 @@ var bPool = sync.Pool{
 	},
 }
 
+// Encoding represents interface for vnc encoding
 type Encoding interface {
 	Type() EncodingType
 	Read(Conn, *Rectangle) error
@@ -98,4 +103,12 @@ func hasBit(n uint8, pos uint8) bool {
 func getBit(n uint8, pos uint8) uint8 {
 	n = n & (1 << pos)
 	return n
+}
+
+func newRGBAImage(rgba []byte, rect *Rectangle) image.Image {
+	img := &image.RGBA{Stride: 4 * int(rect.Width)}
+	img.Pix = rgba
+	img.Rect.Max.X = int(rect.Width)
+	img.Rect.Max.Y = int(rect.Height)
+	return img
 }

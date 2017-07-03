@@ -18,6 +18,7 @@ const (
 	BtnNone Button = 0
 )
 
+// Mask returns button mask
 func Mask(button Button) uint8 {
 	return uint8(button)
 }

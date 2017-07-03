@@ -5,27 +5,43 @@ import (
 	"fmt"
 )
 
-var DefaultClientMessages = []ClientMessage{
-	&SetPixelFormat{},
-	&SetEncodings{},
-	&FramebufferUpdateRequest{},
-	&KeyEvent{},
-	&PointerEvent{},
-	&ClientCutText{},
-}
+var (
+	// DefaultClientMessages slice of default client messages sent to server
+	DefaultClientMessages = []ClientMessage{
+		&SetPixelFormat{},
+		&SetEncodings{},
+		&FramebufferUpdateRequest{},
+		&KeyEvent{},
+		&PointerEvent{},
+		&ClientCutText{},
+	}
 
-type ServerInit struct {
-	FBWidth, FBHeight uint16
-	PixelFormat       PixelFormat
-	NameLength        uint32
-	NameText          []byte
-}
+	// DefaultServerMessages slice of default server messages sent to client
+	DefaultServerMessages = []ServerMessage{
+		&FramebufferUpdate{},
+		&SetColorMapEntries{},
+		&Bell{},
+		&ServerCutText{},
+	}
+)
 
-func (srvInit ServerInit) String() string {
-	return fmt.Sprintf("Width: %d, Height: %d, PixelFormat: %s, NameLength: %d, MameText: %s", srvInit.FBWidth, srvInit.FBHeight, srvInit.PixelFormat, srvInit.NameLength, srvInit.NameText)
-}
+// ClientMessageType represents a Client-to-Server RFB message type.
+type ClientMessageType uint8
 
-// ServerMessage represents a Client-to-Server RFB message type.
+//go:generate stringer -type=ClientMessageType
+
+// Client-to-Server message types.
+const (
+	SetPixelFormatMsgType ClientMessageType = iota
+	_
+	SetEncodingsMsgType
+	FramebufferUpdateRequestMsgType
+	KeyEventMsgType
+	PointerEventMsgType
+	ClientCutTextMsgType
+)
+
+// ServerMessageType represents a Client-to-Server RFB message type.
 type ServerMessageType uint8
 
 //go:generate stringer -type=ServerMessageType
@@ -38,6 +54,19 @@ const (
 	ServerCutTextMsgType
 )
 
+// ServerInit struct used in server init handshake
+type ServerInit struct {
+	FBWidth, FBHeight uint16
+	PixelFormat       PixelFormat
+	NameLength        uint32
+	NameText          []byte
+}
+
+// String provide stringer
+func (srvInit ServerInit) String() string {
+	return fmt.Sprintf("Width: %d, Height: %d, PixelFormat: %s, NameLength: %d, MameText: %s", srvInit.FBWidth, srvInit.FBHeight, srvInit.PixelFormat, srvInit.NameLength, srvInit.NameText)
+}
+
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
 type FramebufferUpdate struct {
 	_       [1]byte      // pad
@@ -45,14 +74,17 @@ type FramebufferUpdate struct {
 	Rects   []*Rectangle // rectangles
 }
 
+// String provide stringer
 func (msg *FramebufferUpdate) String() string {
 	return fmt.Sprintf("rects %d rectangle[]: { %v }", msg.NumRect, msg.Rects)
 }
 
+// Type return ServerMessageType
 func (*FramebufferUpdate) Type() ServerMessageType {
 	return FramebufferUpdateMsgType
 }
 
+// Read unmarshal message from conn
 func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 	msg := FramebufferUpdate{}
 	var pad [1]byte
@@ -73,6 +105,7 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 	return &msg, nil
 }
 
+// Write marshals message to conn
 func (msg *FramebufferUpdate) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -92,20 +125,24 @@ func (msg *FramebufferUpdate) Write(c Conn) error {
 	return c.Flush()
 }
 
+// ServerCutText represents server message
 type ServerCutText struct {
 	_      [1]byte
 	Length uint32
 	Text   []byte
 }
 
+// String returns string
 func (msg *ServerCutText) String() string {
 	return fmt.Sprintf("lenght: %d text: %s", msg.Length, msg.Text)
 }
 
+// Type returns ServerMessageType
 func (*ServerCutText) Type() ServerMessageType {
 	return ServerCutTextMsgType
 }
 
+// Read unmarshal message from conn
 func (*ServerCutText) Read(c Conn) (ServerMessage, error) {
 	msg := ServerCutText{}
 
@@ -125,6 +162,7 @@ func (*ServerCutText) Read(c Conn) (ServerMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *ServerCutText) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -147,20 +185,25 @@ func (msg *ServerCutText) Write(c Conn) error {
 	return c.Flush()
 }
 
+// Bell server message
 type Bell struct{}
 
+// String return string
 func (*Bell) String() string {
 	return fmt.Sprintf("bell")
 }
 
+// Type returns ServerMessageType
 func (*Bell) Type() ServerMessageType {
 	return BellMsgType
 }
 
+// Read unmarshal message from conn
 func (*Bell) Read(c Conn) (ServerMessage, error) {
 	return &Bell{}, nil
 }
 
+// Write marshal message to conn
 func (msg *Bell) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -168,6 +211,7 @@ func (msg *Bell) Write(c Conn) error {
 	return c.Flush()
 }
 
+// SetColorMapEntries server message
 type SetColorMapEntries struct {
 	_          [1]byte
 	FirstColor uint16
@@ -175,14 +219,17 @@ type SetColorMapEntries struct {
 	Colors     []Color
 }
 
+// String returns string
 func (msg *SetColorMapEntries) String() string {
 	return fmt.Sprintf("first color: %d, numcolors: %d, colors[]: { %v }", msg.FirstColor, msg.ColorsNum, msg.Colors)
 }
 
+// Type returns ServerMessageType
 func (*SetColorMapEntries) Type() ServerMessageType {
 	return SetColorMapEntriesMsgType
 }
 
+// Read unmrashal message from conn
 func (*SetColorMapEntries) Read(c Conn) (ServerMessage, error) {
 	msg := SetColorMapEntries{}
 	var pad [1]byte
@@ -212,6 +259,7 @@ func (*SetColorMapEntries) Read(c Conn) (ServerMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *SetColorMapEntries) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -242,43 +290,23 @@ func (msg *SetColorMapEntries) Write(c Conn) error {
 	return c.Flush()
 }
 
-var DefaultServerMessages = []ServerMessage{
-	&FramebufferUpdate{},
-	&SetColorMapEntries{},
-	&Bell{},
-	&ServerCutText{},
-}
-
-// ClientMessage represents a Client-to-Server RFB message type.
-type ClientMessageType uint8
-
-//go:generate stringer -type=ClientMessageType
-
-// Client-to-Server message types.
-const (
-	SetPixelFormatMsgType ClientMessageType = iota
-	_
-	SetEncodingsMsgType
-	FramebufferUpdateRequestMsgType
-	KeyEventMsgType
-	PointerEventMsgType
-	ClientCutTextMsgType
-)
-
 // SetPixelFormat holds the wire format message.
 type SetPixelFormat struct {
 	_  [3]byte     // padding
 	PF PixelFormat // pixel-format
 }
 
+// String returns string
 func (msg *SetPixelFormat) String() string {
 	return fmt.Sprintf("%s", msg.PF)
 }
 
+// Type returns ClientMessageType
 func (*SetPixelFormat) Type() ClientMessageType {
 	return SetPixelFormatMsgType
 }
 
+// Write marshal message to conn
 func (msg *SetPixelFormat) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -297,6 +325,7 @@ func (msg *SetPixelFormat) Write(c Conn) error {
 	return c.Flush()
 }
 
+// Read unmarshal message from conn
 func (*SetPixelFormat) Read(c Conn) (ClientMessage, error) {
 	msg := SetPixelFormat{}
 	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
@@ -312,14 +341,17 @@ type SetEncodings struct {
 	Encodings []EncodingType
 }
 
+// String return string
 func (msg *SetEncodings) String() string {
 	return fmt.Sprintf("encnum: %d, encodings[]: { %v }", msg.EncNum, msg.Encodings)
 }
 
+// Type returns ClientMessageType
 func (*SetEncodings) Type() ClientMessageType {
 	return SetEncodingsMsgType
 }
 
+// Read unmarshal message from conn
 func (*SetEncodings) Read(c Conn) (ClientMessage, error) {
 	msg := SetEncodings{}
 	var pad [1]byte
@@ -341,6 +373,7 @@ func (*SetEncodings) Read(c Conn) (ClientMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *SetEncodings) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -372,14 +405,17 @@ type FramebufferUpdateRequest struct {
 	Width, Height uint16 // width, height
 }
 
+// String returns string
 func (msg *FramebufferUpdateRequest) String() string {
 	return fmt.Sprintf("incremental: %d, x: %d, y: %d, width: %d, height: %d", msg.Inc, msg.X, msg.Y, msg.Width, msg.Height)
 }
 
+// Type returns ClientMessageType
 func (*FramebufferUpdateRequest) Type() ClientMessageType {
 	return FramebufferUpdateRequestMsgType
 }
 
+// Read unmarshal message from conn
 func (*FramebufferUpdateRequest) Read(c Conn) (ClientMessage, error) {
 	msg := FramebufferUpdateRequest{}
 	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
@@ -388,6 +424,7 @@ func (*FramebufferUpdateRequest) Read(c Conn) (ClientMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *FramebufferUpdateRequest) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -405,14 +442,17 @@ type KeyEvent struct {
 	Key  Key     // key
 }
 
+// String returns string
 func (msg *KeyEvent) String() string {
 	return fmt.Sprintf("down: %d, key: %v", msg.Down, msg.Key)
 }
 
+// Type returns ClientMessageType
 func (*KeyEvent) Type() ClientMessageType {
 	return KeyEventMsgType
 }
 
+// Read unmarshal message from conn
 func (*KeyEvent) Read(c Conn) (ClientMessage, error) {
 	msg := KeyEvent{}
 	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
@@ -421,6 +461,7 @@ func (*KeyEvent) Read(c Conn) (ClientMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *KeyEvent) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -431,20 +472,23 @@ func (msg *KeyEvent) Write(c Conn) error {
 	return c.Flush()
 }
 
-// PointerEventMessage holds the wire format message.
+// PointerEvent message holds the wire format message
 type PointerEvent struct {
 	Mask uint8  // button-mask
 	X, Y uint16 // x-, y-position
 }
 
+// String returns string
 func (msg *PointerEvent) String() string {
 	return fmt.Sprintf("mask %d, x: %d, y: %d", msg.Mask, msg.X, msg.Y)
 }
 
+// Type returns ClientMessageType
 func (*PointerEvent) Type() ClientMessageType {
 	return PointerEventMsgType
 }
 
+// Read unmarshal message from conn
 func (*PointerEvent) Read(c Conn) (ClientMessage, error) {
 	msg := PointerEvent{}
 	if err := binary.Read(c, binary.BigEndian, &msg); err != nil {
@@ -453,6 +497,7 @@ func (*PointerEvent) Read(c Conn) (ClientMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *PointerEvent) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -470,14 +515,17 @@ type ClientCutText struct {
 	Text   []byte
 }
 
+// String returns string
 func (msg *ClientCutText) String() string {
 	return fmt.Sprintf("length: %d, text: %s", msg.Length, msg.Text)
 }
 
+// Type returns ClientMessageType
 func (*ClientCutText) Type() ClientMessageType {
 	return ClientCutTextMsgType
 }
 
+// Read unmarshal message from conn
 func (*ClientCutText) Read(c Conn) (ClientMessage, error) {
 	msg := ClientCutText{}
 	var pad [3]byte
@@ -496,6 +544,7 @@ func (*ClientCutText) Read(c Conn) (ClientMessage, error) {
 	return &msg, nil
 }
 
+// Write marshal message to conn
 func (msg *ClientCutText) Write(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err

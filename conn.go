@@ -5,6 +5,7 @@ import (
 	"net"
 )
 
+// Conn represents vnc conection
 type Conn interface {
 	io.ReadWriteCloser
 	Conn() net.Conn

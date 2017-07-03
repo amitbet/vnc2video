@@ -74,7 +74,6 @@ func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
 	for aten_length > 0 {
 		switch aten_type {
 		case 0: //subrects
-			panic("unknown subrect")
 			var a uint16
 			var b uint16
 			var x uint8
@@ -97,6 +96,7 @@ func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
 			}
 
 			aten_length -= 6 + (16 * 16 * uint32(c.PixelFormat().BPP))
+			panic("subrect!")
 		case 1: //raw
 			fmt.Printf("raw reader %d %s\n", aten_length, rect)
 			encRaw := &RawEncoding{}

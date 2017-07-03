@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	DefaultClientHandlers []ClientHandler = []ClientHandler{
+	// DefaultClientHandlers represents default client handlers
+	DefaultClientHandlers = []ClientHandler{
 		&DefaultClientVersionHandler{},
 		&DefaultClientSecurityHandler{},
 		&DefaultClientClientInitHandler{},
@@ -19,6 +20,7 @@ var (
 	}
 )
 
+// Connect handshake with remote server using underlining net.Conn
 func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 	conn, err := NewClientConn(c, cfg)
 	if err != nil {
@@ -44,22 +46,27 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 
 var _ Conn = (*ClientConn)(nil)
 
+// Config returns connection config
 func (c *ClientConn) Config() interface{} {
 	return c.cfg
 }
 
+// Wait waiting for connection close
 func (c *ClientConn) Wait() {
 	<-c.quit
 }
 
+// Conn return underlining net.Conn
 func (c *ClientConn) Conn() net.Conn {
 	return c.c
 }
 
+// SetProtoVersion sets proto version
 func (c *ClientConn) SetProtoVersion(pv string) {
 	c.protocol = pv
 }
 
+// SetEncodings write SetEncodings message
 func (c *ClientConn) SetEncodings(encs []EncodingType) error {
 
 	msg := &SetEncodings{
@@ -70,10 +77,12 @@ func (c *ClientConn) SetEncodings(encs []EncodingType) error {
 	return msg.Write(c)
 }
 
+// Flush flushes data to conn
 func (c *ClientConn) Flush() error {
 	return c.bw.Flush()
 }
 
+// Close closing conn
 func (c *ClientConn) Close() error {
 	if c.quit != nil {
 		close(c.quit)
@@ -85,61 +94,85 @@ func (c *ClientConn) Close() error {
 	return c.c.Close()
 }
 
+// Read reads data from conn
 func (c *ClientConn) Read(buf []byte) (int, error) {
 	return c.br.Read(buf)
 }
 
+// Write data to conn must be Flushed
 func (c *ClientConn) Write(buf []byte) (int, error) {
 	return c.bw.Write(buf)
 }
 
+// ColorMap returns color map
 func (c *ClientConn) ColorMap() ColorMap {
 	return c.colorMap
 }
 
+// SetColorMap sets color map
 func (c *ClientConn) SetColorMap(cm ColorMap) {
 	c.colorMap = cm
 }
+
+// DesktopName returns connection desktop name
 func (c *ClientConn) DesktopName() []byte {
 	return c.desktopName
 }
+
+// PixelFormat returns connection pixel format
 func (c *ClientConn) PixelFormat() PixelFormat {
 	return c.pixelFormat
 }
+
+// SetDesktopName sets desktop name
 func (c *ClientConn) SetDesktopName(name []byte) {
 	copy(c.desktopName, name)
 }
+
+// SetPixelFormat sets pixel format
 func (c *ClientConn) SetPixelFormat(pf PixelFormat) error {
 	c.pixelFormat = pf
 	return nil
 }
+
+// Encodings returns client encodings
 func (c *ClientConn) Encodings() []Encoding {
 	return c.encodings
 }
+
+// Width returns width
 func (c *ClientConn) Width() uint16 {
 	return c.fbWidth
 }
+
+// Height returns height
 func (c *ClientConn) Height() uint16 {
 	return c.fbHeight
 }
+
+// Protocol returns protocol
 func (c *ClientConn) Protocol() string {
 	return c.protocol
 }
-func (c *ClientConn) SetWidth(w uint16) {
-	c.fbWidth = w
-}
-func (c *ClientConn) SetHeight(h uint16) {
-	c.fbHeight = h
+
+// SetWidth sets width of client conn
+func (c *ClientConn) SetWidth(width uint16) {
+	c.fbWidth = width
 }
 
-// The ClientConn type holds client connection information.
+// SetHeight sets height of client conn
+func (c *ClientConn) SetHeight(height uint16) {
+	c.fbHeight = height
+}
+
+// The ClientConn type holds client connection information
 type ClientConn struct {
 	c        net.Conn
 	br       *bufio.Reader
 	bw       *bufio.Writer
 	cfg      *ClientConfig
 	protocol string
-	m        sync.Mutex
+
 	// If the pixel format uses a color map, then this is the color
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
@@ -169,6 +202,7 @@ type ClientConn struct {
 	errorCh chan error
 }
 
+// NewClientConn creates new client conn using config
 func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 	if len(cfg.Encodings) == 0 {
 		return nil, fmt.Errorf("client can't handle encodings")
@@ -186,9 +220,10 @@ func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 	}, nil
 }
 
+// DefaultClientMessageHandler represents default client message handler
 type DefaultClientMessageHandler struct{}
 
-//  listens to a VNC server and handles server messages.
+// Handle handles server messages.
 func (*DefaultClientMessageHandler) Handle(c Conn) error {
 	cfg := c.Config().(*ClientConfig)
 	var err error

@@ -11,18 +11,22 @@ import (
 
 var _ Conn = (*ServerConn)(nil)
 
+// Config returns config for server conn
 func (c *ServerConn) Config() interface{} {
 	return c.cfg
 }
 
+// Conn returns underlining server net.Conn
 func (c *ServerConn) Conn() net.Conn {
 	return c.c
 }
 
+// Wait waits connection to close
 func (c *ServerConn) Wait() {
 	<-c.quit
 }
 
+// SetEncodings ??? sets server connection encodings
 func (c *ServerConn) SetEncodings(encs []EncodingType) error {
 	encodings := make(map[EncodingType]Encoding)
 	for _, enc := range c.cfg.Encodings {
@@ -36,14 +40,17 @@ func (c *ServerConn) SetEncodings(encs []EncodingType) error {
 	return nil
 }
 
+// SetProtoVersion ??? sets proto version
 func (c *ServerConn) SetProtoVersion(pv string) {
 	c.protocol = pv
 }
 
+// Flush buffered data to server conn
 func (c *ServerConn) Flush() error {
 	return c.bw.Flush()
 }
 
+// Close closing server conn
 func (c *ServerConn) Close() error {
 	if c.quit != nil {
 		close(c.quit)
@@ -52,62 +59,86 @@ func (c *ServerConn) Close() error {
 	return c.c.Close()
 }
 
+// Read reads data from net.Conn
 func (c *ServerConn) Read(buf []byte) (int, error) {
 	return c.br.Read(buf)
 }
 
+// Write writes data to net.Conn, must be Flashed
 func (c *ServerConn) Write(buf []byte) (int, error) {
 	return c.bw.Write(buf)
 }
 
+// ColorMap returns server connection color map
 func (c *ServerConn) ColorMap() ColorMap {
 	return c.colorMap
 }
 
+// SetColorMap sets connection color map
 func (c *ServerConn) SetColorMap(cm ColorMap) {
 	c.colorMap = cm
 }
+
+// DesktopName returns connection desktop name
 func (c *ServerConn) DesktopName() []byte {
 	return c.desktopName
 }
+
+// PixelFormat return connection pixel format
 func (c *ServerConn) PixelFormat() PixelFormat {
 	return c.pixelFormat
 }
+
+// SetDesktopName sets connection desktop name
 func (c *ServerConn) SetDesktopName(name []byte) {
 	copy(c.desktopName, name)
 }
+
+// SetPixelFormat sets pixel format for server conn
 func (c *ServerConn) SetPixelFormat(pf PixelFormat) error {
 	c.pixelFormat = pf
 	return nil
 }
+
+// Encodings returns connection encodings
 func (c *ServerConn) Encodings() []Encoding {
 	return c.encodings
 }
+
+// Width returns framebuffer width
 func (c *ServerConn) Width() uint16 {
 	return c.fbWidth
 }
+
+// Height returns framebuffer height
 func (c *ServerConn) Height() uint16 {
 	return c.fbHeight
 }
+
+// Protocol returns protocol
 func (c *ServerConn) Protocol() string {
 	return c.protocol
 }
 
-// TODO send desktopsize pseudo encoding
+// SetWidth sets framebuffer width
 func (c *ServerConn) SetWidth(w uint16) {
+	// TODO send desktopsize pseudo encoding
 	c.fbWidth = w
 }
+
+// SetHeight sets framebuffer height
 func (c *ServerConn) SetHeight(h uint16) {
+	//	TODO send desktopsize pseudo encoding
 	c.fbHeight = h
 }
 
+// ServerConn underlining server conn
 type ServerConn struct {
 	c        net.Conn
 	cfg      *ServerConfig
 	br       *bufio.Reader
 	bw       *bufio.Writer
 	protocol string
-	m        sync.Mutex
 	// If the pixel format uses a color map, then this is the color
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
@@ -136,7 +167,8 @@ type ServerConn struct {
 }
 
 var (
-	DefaultServerHandlers []ServerHandler = []ServerHandler{
+	// DefaultServerHandlers uses default handlers for hanshake
+	DefaultServerHandlers = []ServerHandler{
 		&DefaultServerVersionHandler{},
 		&DefaultServerSecurityHandler{},
 		&DefaultServerClientInitHandler{},
@@ -145,6 +177,7 @@ var (
 	}
 )
 
+// ServerConfig config struct
 type ServerConfig struct {
 	Handlers         []ServerHandler
 	SecurityHandlers []SecurityHandler
@@ -160,6 +193,7 @@ type ServerConfig struct {
 	ErrorCh          chan error
 }
 
+// NewServerConn returns new  Server connection fron net.Conn
 func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
 	return &ServerConn{
 		c:           c,
@@ -175,6 +209,7 @@ func NewServerConn(c net.Conn, cfg *ServerConfig) (*ServerConn, error) {
 	}, nil
 }
 
+// Serve serves requests from net.Listener using ServerConfig
 func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 	for {
 
@@ -204,8 +239,10 @@ func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 	}
 }
 
+// DefaultServerMessageHandler default package handler
 type DefaultServerMessageHandler struct{}
 
+// Handle handles messages from clients
 func (*DefaultServerMessageHandler) Handle(c Conn) error {
 	cfg := c.Config().(*ServerConfig)
 	var err error

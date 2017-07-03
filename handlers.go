@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// ClientHandler represents client handler
 type ClientHandler interface {
 	Handle(Conn) error
 }
@@ -17,6 +18,7 @@ type ClientMessage interface {
 	Write(Conn) error
 }
 
+// ServerHandler represents server handler
 type ServerHandler interface {
 	Handle(Conn) error
 }
@@ -29,14 +31,19 @@ type ServerMessage interface {
 	Write(Conn) error
 }
 
+// ProtoVersionLength protocol version length
 const ProtoVersionLength = 12
 
 const (
+	// ProtoVersionUnknown unknown version
 	ProtoVersionUnknown = ""
-	ProtoVersion33      = "RFB 003.003\n"
-	ProtoVersion38      = "RFB 003.008\n"
+	// ProtoVersion33 sets if proto 003.003
+	ProtoVersion33 = "RFB 003.003\n"
+	// ProtoVersion38 sets if proto 003.008
+	ProtoVersion38 = "RFB 003.008\n"
 )
 
+// ParseProtoVersion parse protocol version
 func ParseProtoVersion(pv []byte) (uint, uint, error) {
 	var major, minor uint
 
@@ -46,7 +53,7 @@ func ParseProtoVersion(pv []byte) (uint, uint, error) {
 
 	l, err := fmt.Sscanf(string(pv), "RFB %d.%d\n", &major, &minor)
 	if l != 2 {
-		return 0, 0, fmt.Errorf("error parsing ProtocolVersion.")
+		return 0, 0, fmt.Errorf("error parsing protocol version")
 	}
 	if err != nil {
 		return 0, 0, err
@@ -55,8 +62,10 @@ func ParseProtoVersion(pv []byte) (uint, uint, error) {
 	return major, minor, nil
 }
 
+// DefaultClientVersionHandler represents default handler
 type DefaultClientVersionHandler struct{}
 
+// Handle provide version handler for client side
 func (*DefaultClientVersionHandler) Handle(c Conn) error {
 	var version [ProtoVersionLength]byte
 
@@ -88,8 +97,10 @@ func (*DefaultClientVersionHandler) Handle(c Conn) error {
 	return c.Flush()
 }
 
+// DefaultServerVersionHandler represents default server handler
 type DefaultServerVersionHandler struct{}
 
+// Handle provide server version handler
 func (*DefaultServerVersionHandler) Handle(c Conn) error {
 	var version [ProtoVersionLength]byte
 	if err := binary.Write(c, binary.BigEndian, []byte(ProtoVersion38)); err != nil {
@@ -122,8 +133,10 @@ func (*DefaultServerVersionHandler) Handle(c Conn) error {
 	return nil
 }
 
+// DefaultClientSecurityHandler used for client security handler
 type DefaultClientSecurityHandler struct{}
 
+// Handle provide client side security handler
 func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 	cfg := c.Config().(*ClientConfig)
 	var numSecurityTypes uint8
@@ -177,8 +190,10 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 	return nil
 }
 
+// DefaultServerSecurityHandler used for server security handler
 type DefaultServerSecurityHandler struct{}
 
+// Handle provide server side security handler
 func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 	cfg := c.Config().(*ServerConfig)
 	if err := binary.Write(c, binary.BigEndian, uint8(len(cfg.SecurityHandlers))); err != nil {
@@ -236,8 +251,10 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 	return nil
 }
 
+// DefaultClientServerInitHandler default client server init handler
 type DefaultClientServerInitHandler struct{}
 
+// Handle provide default server init handler
 func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	srvInit := ServerInit{}
 
@@ -320,8 +337,10 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	return nil
 }
 
+// DefaultServerServerInitHandler default server server init handler
 type DefaultServerServerInitHandler struct{}
 
+// Handle provide default server server init handler
 func (*DefaultServerServerInitHandler) Handle(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, c.Width()); err != nil {
 		return err
@@ -341,8 +360,10 @@ func (*DefaultServerServerInitHandler) Handle(c Conn) error {
 	return c.Flush()
 }
 
+// DefaultClientClientInitHandler default client client init handler
 type DefaultClientClientInitHandler struct{}
 
+// Handle provide default client client init handler
 func (*DefaultClientClientInitHandler) Handle(c Conn) error {
 	cfg := c.Config().(*ClientConfig)
 	var shared uint8
@@ -357,8 +378,10 @@ func (*DefaultClientClientInitHandler) Handle(c Conn) error {
 	return c.Flush()
 }
 
+// DefaultServerClientInitHandler default server client init handler
 type DefaultServerClientInitHandler struct{}
 
+// Handle provide default server client init handler
 func (*DefaultServerClientInitHandler) Handle(c Conn) error {
 	var shared uint8
 	if err := binary.Read(c, binary.BigEndian, &shared); err != nil {

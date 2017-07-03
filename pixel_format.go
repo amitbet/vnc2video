@@ -10,13 +10,17 @@ import (
 )
 
 var (
-	PixelFormat8bit  PixelFormat = NewPixelFormat(8)
-	PixelFormat16bit PixelFormat = NewPixelFormat(16)
-	PixelFormat32bit PixelFormat = NewPixelFormat(32)
-	PixelFormatAten  PixelFormat = NewPixelFormatAten()
+	// PixelFormat8bit returns 8 bit pixel format
+	PixelFormat8bit = NewPixelFormat(8)
+	// PixelFormat16bit returns 16 bit pixel format
+	PixelFormat16bit = NewPixelFormat(16)
+	// PixelFormat32bit returns 32 bit pixel format
+	PixelFormat32bit = NewPixelFormat(32)
+	// PixelFormatAten returns pixel format used in Aten IKVM
+	PixelFormatAten = NewPixelFormatAten()
 )
 
-// PixelFormat describes the way a pixel is formatted for a VNC connection.
+// PixelFormat describes the way a pixel is formatted for a VNC connection
 type PixelFormat struct {
 	BPP                             uint8   // bits-per-pixel
 	Depth                           uint8   // depth
@@ -27,27 +31,9 @@ type PixelFormat struct {
 	_                               [3]byte // padding
 }
 
-/*
-qemu:
-    <field name="vnc.server_red_max" showname="Red maximum: 255" size="2" pos="76" show="255" value="00ff"/>
-    <field name="vnc.server_green_max" showname="Green maximum: 255" size="2" pos="78" show="255" value="00ff"/>
-    <field name="vnc.server_blue_max" showname="Blue maximum: 255" size="2" pos="80" show="255" value="00ff"/>
-    <field name="vnc.server_red_shift" showname="Red shift: 16" size="1" pos="82" show="16" value="10"/>
-    <field name="vnc.server_green_shift" showname="Green shift: 8" size="1" pos="83" show="8" value="08"/>
-    <field name="vnc.server_blue_shift" showname="Blue shift: 0" size="1" pos="84" show="0" value="00"/>
-*/
-
-/*
-   <field name="vnc.server_red_max" showname="Red maximum: 65535" size="2" pos="76" show="65535" value="ffff"/>
-   <field name="vnc.server_green_max" showname="Green maximum: 65535" size="2" pos="78" show="65535" value="ffff"/>
-   <field name="vnc.server_blue_max" showname="Blue maximum: 65535" size="2" pos="80" show="65535" value="ffff"/>
-   <field name="vnc.server_red_shift" showname="Red shift: 0" size="1" pos="82" show="0" value="00"/>
-   <field name="vnc.server_green_shift" showname="Green shift: 8" size="1" pos="83" show="8" value="08"/>
-   <field name="vnc.server_blue_shift" showname="Blue shift: 16" size="1" pos="84" show="16" value="10"/>
-*/
 const pixelFormatLen = 16
 
-// NewPixelFormat returns a populated PixelFormat structure.
+// NewPixelFormat returns a populated PixelFormat structure
 func NewPixelFormat(bpp uint8) PixelFormat {
 	bigEndian := uint8(0)
 	//	rgbMax := uint16(math.Exp2(float64(bpp))) - 1
@@ -75,17 +61,18 @@ func NewPixelFormat(bpp uint8) PixelFormat {
 	return PixelFormat{bpp, depth, bigEndian, tc, rMax, gMax, bMax, rs, gs, bs, [3]byte{}}
 }
 
+// NewPixelFormatAten returns Aten IKVM pixel format
 func NewPixelFormatAten() PixelFormat {
 	return PixelFormat{16, 15, 0, 1, (1 << 5) - 1, (1 << 5) - 1, (1 << 5) - 1, 10, 5, 0, [3]byte{}}
 }
 
-// Marshal implements the Marshaler interface.
+// Marshal implements the Marshaler interface
 func (pf PixelFormat) Marshal() ([]byte, error) {
 	// Validation checks.
 	switch pf.BPP {
 	case 8, 16, 32:
 	default:
-		return nil, fmt.Errorf("Invalid BPP value %v; must be 8, 16, or 32.", pf.BPP)
+		return nil, fmt.Errorf("Invalid BPP value %v; must be 8, 16, or 32", pf.BPP)
 	}
 
 	if pf.Depth < pf.BPP {
@@ -94,7 +81,7 @@ func (pf PixelFormat) Marshal() ([]byte, error) {
 	switch pf.Depth {
 	case 8, 16, 32:
 	default:
-		return nil, fmt.Errorf("Invalid Depth value %v; must be 8, 16, or 32.", pf.Depth)
+		return nil, fmt.Errorf("Invalid Depth value %v; must be 8, 16, or 32", pf.Depth)
 	}
 
 	// Create the slice of bytes
@@ -109,7 +96,7 @@ func (pf PixelFormat) Marshal() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Read reads from an io.Reader, and populates the PixelFormat.
+// Read reads from an io.Reader, and populates the PixelFormat
 func (pf PixelFormat) Read(r io.Reader) error {
 	buf := make([]byte, pixelFormatLen)
 	if _, err := io.ReadAtLeast(r, buf, pixelFormatLen); err != nil {
@@ -118,7 +105,7 @@ func (pf PixelFormat) Read(r io.Reader) error {
 	return pf.Unmarshal(buf)
 }
 
-// Unmarshal implements the Unmarshaler interface.
+// Unmarshal implements the Unmarshaler interface
 func (pf PixelFormat) Unmarshal(data []byte) error {
 	buf := bPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -135,7 +122,7 @@ func (pf PixelFormat) Unmarshal(data []byte) error {
 	return nil
 }
 
-// String implements the fmt.Stringer interface.
+// String implements the fmt.Stringer interface
 func (pf PixelFormat) String() string {
 	return fmt.Sprintf("{ bpp: %d depth: %d big-endian: %d true-color: %d red-max: %d green-max: %d blue-max: %d red-shift: %d green-shift: %d blue-shift: %d }",
 		pf.BPP, pf.Depth, pf.BigEndian, pf.TrueColor, pf.RedMax, pf.GreenMax, pf.BlueMax, pf.RedShift, pf.GreenShift, pf.BlueShift)

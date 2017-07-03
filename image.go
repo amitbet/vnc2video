@@ -17,9 +17,10 @@ type Color struct {
 	R, G, B uint16
 }
 
+// ColorMap represent color map
 type ColorMap [256]Color
 
-// NewColor returns a new Color object.
+// NewColor returns a new Color object
 func NewColor(pf *PixelFormat, cm *ColorMap) *Color {
 	return &Color{
 		pf: pf,
@@ -27,7 +28,7 @@ func NewColor(pf *PixelFormat, cm *ColorMap) *Color {
 	}
 }
 
-// Rectangle represents a rectangle of pixel data.
+// Rectangle represents a rectangle of pixel data
 type Rectangle struct {
 	X, Y          uint16
 	Width, Height uint16
@@ -35,14 +36,17 @@ type Rectangle struct {
 	Enc           Encoding
 }
 
+// String return string representation
 func (rect *Rectangle) String() string {
 	return fmt.Sprintf("rect x: %d, y: %d, width: %d, height: %d, enc: %s", rect.X, rect.Y, rect.Width, rect.Height, rect.EncType)
 }
 
+// NewRectangle returns new rectangle
 func NewRectangle() *Rectangle {
 	return &Rectangle{}
 }
 
+// Write marshal color to conn
 func (clr *Color) Write(c Conn) error {
 	var err error
 	order := clr.pf.order()
@@ -65,32 +69,7 @@ func (clr *Color) Write(c Conn) error {
 	return err
 }
 
-// Marshal implements the Marshaler interface.
-func (c *Color) Marshal() ([]byte, error) {
-	order := c.pf.order()
-	pixel := c.cmIndex
-	if c.pf.TrueColor == 1 {
-		pixel = uint32(c.R) << c.pf.RedShift
-		pixel |= uint32(c.G) << c.pf.GreenShift
-		pixel |= uint32(c.B) << c.pf.BlueShift
-	}
-
-	var bytes []byte
-	switch c.pf.BPP {
-	case 8:
-		bytes = make([]byte, 1)
-		bytes[0] = byte(pixel)
-	case 16:
-		bytes = make([]byte, 2)
-		order.PutUint16(bytes, uint16(pixel))
-	case 32:
-		bytes = make([]byte, 4)
-		order.PutUint32(bytes, pixel)
-	}
-
-	return bytes, nil
-}
-
+// Read unmarshal color from conn
 func (clr *Color) Read(c Conn) error {
 	order := clr.pf.order()
 	var pixel uint32
@@ -127,36 +106,6 @@ func (clr *Color) Read(c Conn) error {
 	return nil
 }
 
-// Unmarshal implements the Unmarshaler interface.
-func (c *Color) Unmarshal(data []byte) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	order := c.pf.order()
-
-	var pixel uint32
-	switch c.pf.BPP {
-	case 8:
-		pixel = uint32(data[0])
-	case 16:
-		pixel = uint32(order.Uint16(data))
-	case 32:
-		pixel = order.Uint32(data)
-	}
-
-	if c.pf.TrueColor == 1 {
-		c.R = uint16((pixel >> c.pf.RedShift) & uint32(c.pf.RedMax))
-		c.G = uint16((pixel >> c.pf.GreenShift) & uint32(c.pf.GreenMax))
-		c.B = uint16((pixel >> c.pf.BlueShift) & uint32(c.pf.BlueMax))
-	} else {
-		*c = c.cm[pixel]
-		c.cmIndex = pixel
-	}
-
-	return nil
-}
-
 func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
 	rect := image.Rect(int(x), int(y), int(x+width), int(y+height))
 	rgba := image.NewRGBA64(rect)
@@ -174,72 +123,76 @@ func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
 	return rgba
 }
 
-// Marshal implements the Marshaler interface.
-func (r *Rectangle) Write(c Conn) error {
-
+// Write marshal rectangle to conn
+func (rect *Rectangle) Write(c Conn) error {
 	var err error
-	if err = binary.Write(c, binary.BigEndian, r.X); err != nil {
+
+	if err = binary.Write(c, binary.BigEndian, rect.X); err != nil {
 		return err
 	}
-	if err = binary.Write(c, binary.BigEndian, r.Y); err != nil {
+	if err = binary.Write(c, binary.BigEndian, rect.Y); err != nil {
 		return err
 	}
-	if err = binary.Write(c, binary.BigEndian, r.Width); err != nil {
+	if err = binary.Write(c, binary.BigEndian, rect.Width); err != nil {
 		return err
 	}
-	if err = binary.Write(c, binary.BigEndian, r.Height); err != nil {
+	if err = binary.Write(c, binary.BigEndian, rect.Height); err != nil {
 		return err
 	}
-	if err = binary.Write(c, binary.BigEndian, r.EncType); err != nil {
+	if err = binary.Write(c, binary.BigEndian, rect.EncType); err != nil {
 		return err
 	}
 
-	return r.Enc.Write(c, r)
+	return rect.Enc.Write(c, rect)
 }
 
-func (r *Rectangle) Read(c Conn) error {
+// Read unmarshal rectangle from conn
+func (rect *Rectangle) Read(c Conn) error {
 	var err error
-	if err = binary.Read(c, binary.BigEndian, &r.X); err != nil {
+
+	if err = binary.Read(c, binary.BigEndian, &rect.X); err != nil {
 		return err
 	}
-	if err = binary.Read(c, binary.BigEndian, &r.Y); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &rect.Y); err != nil {
 		return err
 	}
-	if err = binary.Read(c, binary.BigEndian, &r.Width); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &rect.Width); err != nil {
 		return err
 	}
-	if err = binary.Read(c, binary.BigEndian, &r.Height); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &rect.Height); err != nil {
 		return err
 	}
-	if err = binary.Read(c, binary.BigEndian, &r.EncType); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &rect.EncType); err != nil {
 		return err
 	}
-	switch r.EncType {
+
+	switch rect.EncType {
 	case EncCopyRect:
-		r.Enc = &CopyRectEncoding{}
+		rect.Enc = &CopyRectEncoding{}
 	case EncTight:
-		r.Enc = &TightEncoding{}
+		rect.Enc = &TightEncoding{}
 	case EncTightPng:
-		r.Enc = &TightPngEncoding{}
+		rect.Enc = &TightPngEncoding{}
 	case EncRaw:
 		if c.Protocol() == "aten" {
-			r.Enc = &AtenHermon{}
+			rect.Enc = &AtenHermon{}
 		} else {
-			r.Enc = &RawEncoding{}
+			rect.Enc = &RawEncoding{}
 		}
 	case EncDesktopSizePseudo:
-		r.Enc = &DesktopSizePseudoEncoding{}
+		rect.Enc = &DesktopSizePseudoEncoding{}
 	case EncDesktopNamePseudo:
-		r.Enc = &DesktopNamePseudoEncoding{}
+		rect.Enc = &DesktopNamePseudoEncoding{}
 	case EncXCursorPseudo:
-		r.Enc = &XCursorPseudoEncoding{}
+		rect.Enc = &XCursorPseudoEncoding{}
 	case EncAtenHermon:
-		r.Enc = &AtenHermon{}
+		rect.Enc = &AtenHermon{}
 	default:
-		return fmt.Errorf("unsupported encoding %s", r.EncType)
+		return fmt.Errorf("unsupported encoding %s", rect.EncType)
 	}
-	return r.Enc.Read(c, r)
+
+	return rect.Enc.Read(c, rect)
 }
 
-// Area returns the total area in pixels of the Rectangle.
-func (r *Rectangle) Area() int { return int(r.Width) * int(r.Height) }
+// Area returns the total area in pixels of the Rectangle
+func (rect *Rectangle) Area() int { return int(rect.Width) * int(rect.Height) }
