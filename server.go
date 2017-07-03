@@ -135,10 +135,6 @@ type ServerConn struct {
 	quit chan struct{}
 }
 
-type ServerHandler interface {
-	Handle(Conn) error
-}
-
 var (
 	DefaultServerHandlers []ServerHandler = []ServerHandler{
 		&DefaultServerVersionHandler{},

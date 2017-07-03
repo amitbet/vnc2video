@@ -244,10 +244,6 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 	return nil
 }
 
-type ClientHandler interface {
-	Handle(Conn) error
-}
-
 // A ClientConfig structure is used to configure a ClientConn. After
 // one has been passed to initialize a connection, it must not be modified.
 type ClientConfig struct {

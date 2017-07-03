@@ -5,12 +5,20 @@ import (
 	"fmt"
 )
 
+type ClientHandler interface {
+	Handle(Conn) error
+}
+
 // ClientMessage is the interface
 type ClientMessage interface {
 	String() string
 	Type() ClientMessageType
 	Read(Conn) (ClientMessage, error)
 	Write(Conn) error
+}
+
+type ServerHandler interface {
+	Handle(Conn) error
 }
 
 // ServerMessage is the interface
@@ -199,7 +207,7 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 
 	sType, ok := secTypes[secType]
 	if !ok {
-		return fmt.Errorf("server type %d not implemented")
+		return fmt.Errorf("security type %d not implemented", secType)
 	}
 
 	var authCode uint32
@@ -251,14 +259,15 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 		return err
 	}
 	c.SetDesktopName(srvInit.NameText)
-	c.SetWidth(srvInit.FBWidth)
-	c.SetHeight(srvInit.FBHeight)
 	if c.Protocol() == "aten" {
+		c.SetWidth(800)
+		c.SetHeight(600)
 		c.SetPixelFormat(NewPixelFormatAten())
 	} else {
+		c.SetWidth(srvInit.FBWidth)
+		c.SetHeight(srvInit.FBHeight)
 		c.SetPixelFormat(srvInit.PixelFormat)
 	}
-
 	if c.Protocol() == "aten" {
 		ikvm := struct {
 			_               [8]byte
@@ -280,14 +289,15 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 			return err
 		}
 
-		caps.ServerMessagesNum = uint16(16)
+		caps.ServerMessagesNum = uint16(2)
 		var item [16]byte
 		for i := uint16(0); i < caps.ServerMessagesNum; i++ {
 			if err := binary.Read(c, binary.BigEndian, &item); err != nil {
 				return err
 			}
-			fmt.Printf("server message cap %v\n", item)
+			fmt.Printf("server message cap %s\n", item)
 		}
+
 		/*
 			for i := uint16(0); i < caps.ClientMessagesNum; i++ {
 				if err := binary.Read(c, binary.BigEndian, &item); err != nil {
@@ -302,10 +312,10 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 				fmt.Printf("encoding cap %s\n", item)
 			}
 		*/
-		var pad [1]byte
-		if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
-			return err
-		}
+		//	var pad [1]byte
+		//	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
+		//		return err
+		//	}
 	}
 	return nil
 }
