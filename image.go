@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
+	"strings"
 )
 
 //var _ draw.Drawer = (*ServerConn)(nil)
@@ -174,7 +175,7 @@ func (rect *Rectangle) Read(c Conn) error {
 	case EncTightPng:
 		rect.Enc = &TightPngEncoding{}
 	case EncRaw:
-		if c.Protocol() == "aten" {
+		if strings.HasPrefix(c.Protocol(), "aten") {
 			rect.Enc = &AtenHermon{}
 		} else {
 			rect.Enc = &RawEncoding{}

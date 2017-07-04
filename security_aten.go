@@ -50,10 +50,10 @@ func (auth *ClientAuthATEN) Auth(c Conn) error {
 		}
 	*/
 	if ((nt&0xffff0ff0)>>0 == 0xaff90fb0) || (nt <= 0 || nt > 0x1000000) {
-		c.SetProtoVersion("aten")
+		c.SetProtoVersion("aten1")
 		var skip [20]byte
 		binary.Read(c, binary.BigEndian, &skip)
-		fmt.Printf("skip %v\n", skip)
+		//fmt.Printf("skip %v\n", skip)
 	}
 
 	username := make([]byte, definedAuthLen)

@@ -5,30 +5,9 @@ import (
 	"fmt"
 )
 
-// ClientHandler represents client handler
-type ClientHandler interface {
+// Handler represents handler of handshake
+type Handler interface {
 	Handle(Conn) error
-}
-
-// ClientMessage is the interface
-type ClientMessage interface {
-	String() string
-	Type() ClientMessageType
-	Read(Conn) (ClientMessage, error)
-	Write(Conn) error
-}
-
-// ServerHandler represents server handler
-type ServerHandler interface {
-	Handle(Conn) error
-}
-
-// ServerMessage is the interface
-type ServerMessage interface {
-	String() string
-	Type() ServerMessageType
-	Read(Conn) (ServerMessage, error)
-	Write(Conn) error
 }
 
 // ProtoVersionLength protocol version length
@@ -256,27 +235,28 @@ type DefaultClientServerInitHandler struct{}
 
 // Handle provide default server init handler
 func (*DefaultClientServerInitHandler) Handle(c Conn) error {
+	var err error
 	srvInit := ServerInit{}
 
-	if err := binary.Read(c, binary.BigEndian, &srvInit.FBWidth); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &srvInit.FBWidth); err != nil {
 		return err
 	}
-	if err := binary.Read(c, binary.BigEndian, &srvInit.FBHeight); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &srvInit.FBHeight); err != nil {
 		return err
 	}
-	if err := binary.Read(c, binary.BigEndian, &srvInit.PixelFormat); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &srvInit.PixelFormat); err != nil {
 		return err
 	}
-	if err := binary.Read(c, binary.BigEndian, &srvInit.NameLength); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &srvInit.NameLength); err != nil {
 		return err
 	}
 
 	srvInit.NameText = make([]byte, srvInit.NameLength)
-	if err := binary.Read(c, binary.BigEndian, &srvInit.NameText); err != nil {
+	if err = binary.Read(c, binary.BigEndian, &srvInit.NameText); err != nil {
 		return err
 	}
 	c.SetDesktopName(srvInit.NameText)
-	if c.Protocol() == "aten" {
+	if c.Protocol() == "aten1" {
 		c.SetWidth(800)
 		c.SetHeight(600)
 		c.SetPixelFormat(NewPixelFormatAten())
@@ -285,7 +265,7 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 		c.SetHeight(srvInit.FBHeight)
 		c.SetPixelFormat(srvInit.PixelFormat)
 	}
-	if c.Protocol() == "aten" {
+	if c.Protocol() == "aten1" {
 		ikvm := struct {
 			_               [8]byte
 			IKVMVideoEnable uint8
@@ -293,9 +273,11 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 			IKVMKickEnable  uint8
 			VUSBEnable      uint8
 		}{}
-		if err := binary.Read(c, binary.BigEndian, &ikvm); err != nil {
+		if err = binary.Read(c, binary.BigEndian, &ikvm); err != nil {
 			return err
 		}
+	}
+	/*
 		caps := struct {
 			ServerMessagesNum uint16
 			ClientMessagesNum uint16
@@ -306,7 +288,7 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 			return err
 		}
 
-		caps.ServerMessagesNum = uint16(2)
+		caps.ServerMessagesNum = uint16(1)
 		var item [16]byte
 		for i := uint16(0); i < caps.ServerMessagesNum; i++ {
 			if err := binary.Read(c, binary.BigEndian, &item); err != nil {
@@ -315,7 +297,6 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 			fmt.Printf("server message cap %s\n", item)
 		}
 
-		/*
 			for i := uint16(0); i < caps.ClientMessagesNum; i++ {
 				if err := binary.Read(c, binary.BigEndian, &item); err != nil {
 					return err
@@ -328,12 +309,11 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 				}
 				fmt.Printf("encoding cap %s\n", item)
 			}
-		*/
 		//	var pad [1]byte
 		//	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
 		//		return err
 		//	}
-	}
+	}*/
 	return nil
 }
 

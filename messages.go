@@ -25,7 +25,7 @@ var (
 	}
 )
 
-// ClientMessageType represents a Client-to-Server RFB message type.
+// ClientMessageType represents RFB message type
 type ClientMessageType uint8
 
 //go:generate stringer -type=ClientMessageType
@@ -41,12 +41,10 @@ const (
 	ClientCutTextMsgType
 )
 
-// ServerMessageType represents a Client-to-Server RFB message type.
+// ServerMessageType represents RFB message type
 type ServerMessageType uint8
 
-//go:generate stringer -type=ServerMessageType
-
-// Client-to-Server message types.
+// Server-to-Client message types
 const (
 	FramebufferUpdateMsgType ServerMessageType = iota
 	SetColorMapEntriesMsgType
@@ -67,6 +65,20 @@ func (srvInit ServerInit) String() string {
 	return fmt.Sprintf("Width: %d, Height: %d, PixelFormat: %s, NameLength: %d, MameText: %s", srvInit.FBWidth, srvInit.FBHeight, srvInit.PixelFormat, srvInit.NameLength, srvInit.NameText)
 }
 
+type ClientMessage interface {
+	String() string
+	Type() ClientMessageType
+	Read(Conn) (ClientMessage, error)
+	Write(Conn) error
+}
+
+type ServerMessage interface {
+	String() string
+	Type() ServerMessageType
+	Read(Conn) (ServerMessage, error)
+	Write(Conn) error
+}
+
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
 type FramebufferUpdate struct {
 	_       [1]byte      // pad
@@ -79,7 +91,7 @@ func (msg *FramebufferUpdate) String() string {
 	return fmt.Sprintf("rects %d rectangle[]: { %v }", msg.NumRect, msg.Rects)
 }
 
-// Type return ServerMessageType
+// Type return MessageType
 func (*FramebufferUpdate) Type() ServerMessageType {
 	return FramebufferUpdateMsgType
 }
@@ -137,7 +149,7 @@ func (msg *ServerCutText) String() string {
 	return fmt.Sprintf("lenght: %d text: %s", msg.Length, msg.Text)
 }
 
-// Type returns ServerMessageType
+// Type returns MessageType
 func (*ServerCutText) Type() ServerMessageType {
 	return ServerCutTextMsgType
 }
@@ -193,7 +205,7 @@ func (*Bell) String() string {
 	return fmt.Sprintf("bell")
 }
 
-// Type returns ServerMessageType
+// Type returns MessageType
 func (*Bell) Type() ServerMessageType {
 	return BellMsgType
 }
@@ -224,7 +236,7 @@ func (msg *SetColorMapEntries) String() string {
 	return fmt.Sprintf("first color: %d, numcolors: %d, colors[]: { %v }", msg.FirstColor, msg.ColorsNum, msg.Colors)
 }
 
-// Type returns ServerMessageType
+// Type returns MessageType
 func (*SetColorMapEntries) Type() ServerMessageType {
 	return SetColorMapEntriesMsgType
 }
@@ -301,7 +313,7 @@ func (msg *SetPixelFormat) String() string {
 	return fmt.Sprintf("%s", msg.PF)
 }
 
-// Type returns ClientMessageType
+// Type returns MessageType
 func (*SetPixelFormat) Type() ClientMessageType {
 	return SetPixelFormatMsgType
 }
@@ -346,7 +358,7 @@ func (msg *SetEncodings) String() string {
 	return fmt.Sprintf("encnum: %d, encodings[]: { %v }", msg.EncNum, msg.Encodings)
 }
 
-// Type returns ClientMessageType
+// Type returns MessageType
 func (*SetEncodings) Type() ClientMessageType {
 	return SetEncodingsMsgType
 }
@@ -410,7 +422,7 @@ func (msg *FramebufferUpdateRequest) String() string {
 	return fmt.Sprintf("incremental: %d, x: %d, y: %d, width: %d, height: %d", msg.Inc, msg.X, msg.Y, msg.Width, msg.Height)
 }
 
-// Type returns ClientMessageType
+// Type returns MessageType
 func (*FramebufferUpdateRequest) Type() ClientMessageType {
 	return FramebufferUpdateRequestMsgType
 }
@@ -447,7 +459,7 @@ func (msg *KeyEvent) String() string {
 	return fmt.Sprintf("down: %d, key: %v", msg.Down, msg.Key)
 }
 
-// Type returns ClientMessageType
+// Type returns MessageType
 func (*KeyEvent) Type() ClientMessageType {
 	return KeyEventMsgType
 }
@@ -483,7 +495,7 @@ func (msg *PointerEvent) String() string {
 	return fmt.Sprintf("mask %d, x: %d, y: %d", msg.Mask, msg.X, msg.Y)
 }
 
-// Type returns ClientMessageType
+// Type returns MessageType
 func (*PointerEvent) Type() ClientMessageType {
 	return PointerEventMsgType
 }
@@ -520,7 +532,7 @@ func (msg *ClientCutText) String() string {
 	return fmt.Sprintf("length: %d, text: %s", msg.Length, msg.Text)
 }
 
-// Type returns ClientMessageType
+// Type returns MessageType
 func (*ClientCutText) Type() ClientMessageType {
 	return ClientCutTextMsgType
 }

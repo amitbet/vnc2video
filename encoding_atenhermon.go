@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+const (
+	EncAtenHermonSubrect EncodingType = 0
+	EncAtenHermonRaw     EncodingType = 1
+)
+
 type AtenHermon struct {
 	_             [4]byte
 	AtenLength    uint32
@@ -13,6 +18,14 @@ type AtenHermon struct {
 	AtenSubrects  uint32
 	AtenRawLength uint32
 	Encodings     []Encoding
+}
+
+type AtenHermonSubrect struct {
+	A    uint16
+	B    uint16
+	Y    uint8
+	X    uint8
+	Data []byte
 }
 
 func (*AtenHermon) Type() EncodingType { return EncAtenHermon }
@@ -72,40 +85,21 @@ func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
 	aten_length -= 10 // skip
 
 	for aten_length > 0 {
-		switch aten_type {
-		case 0: //subrects
-			var a uint16
-			var b uint16
-			var x uint8
-			var y uint8
-			if err := binary.Read(c, binary.BigEndian, &a); err != nil {
+		switch EncodingType(aten_type) {
+		case EncAtenHermonSubrect:
+			encSR := &AtenHermonSubrect{}
+			if err := encSR.Read(c, rect); err != nil {
 				return err
 			}
-			if err := binary.Read(c, binary.BigEndian, &b); err != nil {
-				return err
-			}
-			if err := binary.Read(c, binary.BigEndian, &y); err != nil {
-				return err
-			}
-			if err := binary.Read(c, binary.BigEndian, &x); err != nil {
-				return err
-			}
-			data := make([]byte, 16*16*uint32(c.PixelFormat().BPP))
-			if err := binary.Read(c, binary.BigEndian, &data); err != nil {
-				return err
-			}
-
-			aten_length -= 6 + (16 * 16 * uint32(c.PixelFormat().BPP))
-			panic("subrect!")
-		case 1: //raw
-			fmt.Printf("raw reader %d %s\n", aten_length, rect)
+			enc.Encodings = append(enc.Encodings, encSR)
+			aten_length -= 6 + (16 * 16 * uint32(c.PixelFormat().BPP/8))
+		case EncAtenHermonRaw:
 			encRaw := &RawEncoding{}
 			if err := encRaw.Read(c, rect); err != nil {
 				return err
 			}
 			enc.Encodings = append(enc.Encodings, encRaw)
-			aten_length = 0
-			//aten_length -= uint32(rect.Area()) * uint32(c.PixelFormat().BPP)
+			aten_length -= uint32(rect.Area()) * uint32(c.PixelFormat().BPP/8)
 		default:
 			return fmt.Errorf("unknown aten hermon type %d", aten_type)
 
@@ -115,7 +109,6 @@ func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
 	if aten_length < 0 {
 		return fmt.Errorf("aten_len dropped below zero")
 	}
-	fmt.Printf("aten hermon readed\n")
 	return nil
 }
 
@@ -152,7 +145,48 @@ func (enc *AtenHermon) Write(c Conn, rect *Rectangle) error {
 			return err
 		}
 	}
+	return nil
+}
 
-	fmt.Printf("aten hermon writed\n")
+func (enc *AtenHermonSubrect) Type() EncodingType {
+	return EncAtenHermonSubrect
+}
+
+func (enc *AtenHermonSubrect) Read(c Conn, rect *Rectangle) error {
+	if err := binary.Read(c, binary.BigEndian, &enc.A); err != nil {
+		return err
+	}
+	if err := binary.Read(c, binary.BigEndian, &enc.B); err != nil {
+		return err
+	}
+	if err := binary.Read(c, binary.BigEndian, &enc.Y); err != nil {
+		return err
+	}
+	if err := binary.Read(c, binary.BigEndian, &enc.X); err != nil {
+		return err
+	}
+	enc.Data = make([]byte, 16*16*uint32(c.PixelFormat().BPP/8))
+	if err := binary.Read(c, binary.BigEndian, &enc.Data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (enc *AtenHermonSubrect) Write(c Conn, rect *Rectangle) error {
+	if err := binary.Write(c, binary.BigEndian, enc.A); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, enc.B); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, enc.Y); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, enc.X); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, enc.Data); err != nil {
+		return err
+	}
 	return nil
 }

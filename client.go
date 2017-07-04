@@ -11,7 +11,7 @@ import (
 
 var (
 	// DefaultClientHandlers represents default client handlers
-	DefaultClientHandlers = []ClientHandler{
+	DefaultClientHandlers = []Handler{
 		&DefaultClientVersionHandler{},
 		&DefaultClientSecurityHandler{},
 		&DefaultClientClientInitHandler{},
@@ -126,7 +126,7 @@ func (c *ClientConn) PixelFormat() PixelFormat {
 
 // SetDesktopName sets desktop name
 func (c *ClientConn) SetDesktopName(name []byte) {
-	copy(c.desktopName, name)
+	c.desktopName = name
 }
 
 // SetPixelFormat sets pixel format
@@ -232,7 +232,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 	defer c.Close()
 
 	serverMessages := make(map[ServerMessageType]ServerMessage)
-	for _, m := range cfg.ServerMessages {
+	for _, m := range cfg.Messages {
 		serverMessages[m.Type()] = m
 	}
 
@@ -282,7 +282,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 // A ClientConfig structure is used to configure a ClientConn. After
 // one has been passed to initialize a connection, it must not be modified.
 type ClientConfig struct {
-	Handlers         []ClientHandler
+	Handlers         []Handler
 	SecurityHandlers []SecurityHandler
 	Encodings        []Encoding
 	PixelFormat      PixelFormat
@@ -290,7 +290,7 @@ type ClientConfig struct {
 	ClientMessageCh  chan ClientMessage
 	ServerMessageCh  chan ServerMessage
 	Exclusive        bool
-	ServerMessages   []ServerMessage
+	Messages         []ServerMessage
 	QuitCh           chan struct{}
 	ErrorCh          chan error
 	quit             chan struct{}

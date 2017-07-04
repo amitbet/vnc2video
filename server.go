@@ -91,7 +91,7 @@ func (c *ServerConn) PixelFormat() PixelFormat {
 
 // SetDesktopName sets connection desktop name
 func (c *ServerConn) SetDesktopName(name []byte) {
-	copy(c.desktopName, name)
+	c.desktopName = name
 }
 
 // SetPixelFormat sets pixel format for server conn
@@ -168,7 +168,7 @@ type ServerConn struct {
 
 var (
 	// DefaultServerHandlers uses default handlers for hanshake
-	DefaultServerHandlers = []ServerHandler{
+	DefaultServerHandlers = []Handler{
 		&DefaultServerVersionHandler{},
 		&DefaultServerSecurityHandler{},
 		&DefaultServerClientInitHandler{},
@@ -179,14 +179,14 @@ var (
 
 // ServerConfig config struct
 type ServerConfig struct {
-	Handlers         []ServerHandler
+	Handlers         []Handler
 	SecurityHandlers []SecurityHandler
 	Encodings        []Encoding
 	PixelFormat      PixelFormat
 	ColorMap         ColorMap
 	ClientMessageCh  chan ClientMessage
 	ServerMessageCh  chan ServerMessage
-	ClientMessages   []ClientMessage
+	Messages         []ClientMessage
 	DesktopName      []byte
 	Height           uint16
 	Width            uint16
@@ -250,7 +250,7 @@ func (*DefaultServerMessageHandler) Handle(c Conn) error {
 
 	defer c.Close()
 	clientMessages := make(map[ClientMessageType]ClientMessage)
-	for _, m := range cfg.ClientMessages {
+	for _, m := range cfg.Messages {
 		clientMessages[m.Type()] = m
 	}
 	wg.Add(2)
