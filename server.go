@@ -120,6 +120,17 @@ func (c *ServerConn) Protocol() string {
 	return c.protocol
 }
 
+// SecurityHandler returns security handler
+func (c *ServerConn) SecurityHandler() SecurityHandler {
+	return c.securityHandler
+}
+
+// SetSecurityHandler sets security handler
+func (c *ServerConn) SetSecurityHandler(sechandler SecurityHandler) error {
+	c.securityHandler = sechandler
+	return nil
+}
+
 // SetWidth sets framebuffer width
 func (c *ServerConn) SetWidth(w uint16) {
 	// TODO send desktopsize pseudo encoding
@@ -151,6 +162,8 @@ type ServerConn struct {
 	// Encodings supported by the client. This should not be modified
 	// directly. Instead, SetEncodings() should be used.
 	encodings []Encoding
+
+	securityHandler SecurityHandler
 
 	// Height of the frame buffer in pixels, sent to the client.
 	fbHeight uint16

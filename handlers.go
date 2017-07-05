@@ -165,7 +165,7 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 		}
 		return fmt.Errorf("%s", reasonText)
 	}
-
+	c.SetSecurityHandler(secType)
 	return nil
 }
 
@@ -227,6 +227,7 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 		}
 		return authErr
 	}
+	c.SetSecurityHandler(sType)
 	return nil
 }
 

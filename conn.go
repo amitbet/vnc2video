@@ -26,4 +26,6 @@ type Conn interface {
 	Flush() error
 	Wait()
 	SetProtoVersion(string)
+	SetSecurityHandler(SecurityHandler) error
+	SecurityHandler() SecurityHandler
 }

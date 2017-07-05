@@ -165,6 +165,17 @@ func (c *ClientConn) SetHeight(height uint16) {
 	c.fbHeight = height
 }
 
+// SecurityHandler returns security handler
+func (c *ClientConn) SecurityHandler() SecurityHandler {
+	return c.securityHandler
+}
+
+// SetSecurityHandler sets security handler
+func (c *ClientConn) SetSecurityHandler(sechandler SecurityHandler) error {
+	c.securityHandler = sechandler
+	return nil
+}
+
 // The ClientConn type holds client connection information
 type ClientConn struct {
 	c        net.Conn
@@ -185,6 +196,8 @@ type ClientConn struct {
 	// Encodings supported by the client. This should not be modified
 	// directly. Instead, SetEncodings() should be used.
 	encodings []Encoding
+
+	securityHandler SecurityHandler
 
 	// Height of the frame buffer in pixels, sent from the server.
 	fbHeight uint16
