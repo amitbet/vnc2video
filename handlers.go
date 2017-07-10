@@ -20,6 +20,8 @@ const (
 	ProtoVersion33 = "RFB 003.003\n"
 	// ProtoVersion38 sets if proto 003.008
 	ProtoVersion38 = "RFB 003.008\n"
+	// ProtoVersion37 sets if proto 003.007
+	ProtoVersion37 = "RFB 003.007\n"
 )
 
 // ParseProtoVersion parse protocol version
@@ -175,25 +177,38 @@ type DefaultServerSecurityHandler struct{}
 // Handle provide server side security handler
 func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 	cfg := c.Config().(*ServerConfig)
-	if err := binary.Write(c, binary.BigEndian, uint8(len(cfg.SecurityHandlers))); err != nil {
-		return err
-	}
+	var secType SecurityType
+	if c.Protocol() == ProtoVersion37 || c.Protocol() == ProtoVersion38 {
+		if err := binary.Write(c, binary.BigEndian, uint8(len(cfg.SecurityHandlers))); err != nil {
+			return err
+		}
 
-	for _, sectype := range cfg.SecurityHandlers {
-		if err := binary.Write(c, binary.BigEndian, sectype.Type()); err != nil {
+		for _, sectype := range cfg.SecurityHandlers {
+			if err := binary.Write(c, binary.BigEndian, sectype.Type()); err != nil {
+				return err
+			}
+		}
+	} else {
+		st := uint32(0)
+		for _, sectype := range cfg.SecurityHandlers {
+			if uint32(sectype.Type()) > st {
+				st = uint32(sectype.Type())
+				secType = sectype.Type()
+			}
+		}
+		if err := binary.Write(c, binary.BigEndian, st); err != nil {
 			return err
 		}
 	}
-
 	if err := c.Flush(); err != nil {
 		return err
 	}
 
-	var secType SecurityType
-	if err := binary.Read(c, binary.BigEndian, &secType); err != nil {
-		return err
+	if c.Protocol() == ProtoVersion38 {
+		if err := binary.Read(c, binary.BigEndian, &secType); err != nil {
+			return err
+		}
 	}
-
 	secTypes := make(map[SecurityType]SecurityHandler)
 	for _, sType := range cfg.SecurityHandlers {
 		secTypes[sType.Type()] = sType
@@ -209,6 +224,7 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 	if authErr != nil {
 		authCode = uint32(1)
 	}
+
 	if err := binary.Write(c, binary.BigEndian, authCode); err != nil {
 		return err
 	}
@@ -220,14 +236,17 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 		c.SetSecurityHandler(sType)
 		return nil
 	}
-	if err := binary.Write(c, binary.BigEndian, uint32(len(authErr.Error()))); err != nil {
-		return err
-	}
-	if err := binary.Write(c, binary.BigEndian, []byte(authErr.Error())); err != nil {
-		return err
-	}
-	if err := c.Flush(); err != nil {
-		return err
+
+	if c.Protocol() == ProtoVersion38 {
+		if err := binary.Write(c, binary.BigEndian, uint32(len(authErr.Error()))); err != nil {
+			return err
+		}
+		if err := binary.Write(c, binary.BigEndian, []byte(authErr.Error())); err != nil {
+			return err
+		}
+		if err := c.Flush(); err != nil {
+			return err
+		}
 	}
 	return authErr
 }
