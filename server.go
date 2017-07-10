@@ -244,7 +244,9 @@ func Serve(ctx context.Context, ln net.Listener, cfg *ServerConfig) error {
 	handlerLoop:
 		for _, h := range cfg.Handlers {
 			if err := h.Handle(conn); err != nil {
-				cfg.ErrorCh <- err
+				if cfg.ErrorCh != nil {
+					cfg.ErrorCh <- err
+				}
 				conn.Close()
 				break handlerLoop
 			}
