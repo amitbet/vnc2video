@@ -52,7 +52,7 @@ func (clr *Color) Write(c Conn) error {
 	var err error
 	order := clr.pf.order()
 	pixel := clr.cmIndex
-	if clr.pf.TrueColor == 1 {
+	if clr.pf.TrueColor != 0 {
 		pixel = uint32(clr.R) << clr.pf.RedShift
 		pixel |= uint32(clr.G) << clr.pf.GreenShift
 		pixel |= uint32(clr.B) << clr.pf.BlueShift
@@ -96,7 +96,7 @@ func (clr *Color) Read(c Conn) error {
 		pixel = uint32(px)
 	}
 
-	if clr.pf.TrueColor == 1 {
+	if clr.pf.TrueColor != 0 {
 		clr.R = uint16((pixel >> clr.pf.RedShift) & uint32(clr.pf.RedMax))
 		clr.G = uint16((pixel >> clr.pf.GreenShift) & uint32(clr.pf.GreenMax))
 		clr.B = uint16((pixel >> clr.pf.BlueShift) & uint32(clr.pf.BlueMax))

@@ -330,7 +330,7 @@ func (msg *SetPixelFormat) Write(c Conn) error {
 
 	pf := c.PixelFormat()
 	// Invalidate the color map.
-	if pf.TrueColor != 1 {
+	if pf.TrueColor != 0 {
 		c.SetColorMap(ColorMap{})
 	}
 
