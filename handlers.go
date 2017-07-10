@@ -212,23 +212,24 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, authCode); err != nil {
 		return err
 	}
-	if err := c.Flush(); err != nil {
-		return err
-	}
-	if authErr != nil {
-		if err := binary.Write(c, binary.BigEndian, uint32(len(authErr.Error()))); err != nil {
-			return err
-		}
-		if err := binary.Write(c, binary.BigEndian, []byte(authErr.Error())); err != nil {
-			return err
-		}
+
+	if authErr == nil {
 		if err := c.Flush(); err != nil {
 			return err
 		}
-		return authErr
+		c.SetSecurityHandler(sType)
+		return nil
 	}
-	c.SetSecurityHandler(sType)
-	return nil
+	if err := binary.Write(c, binary.BigEndian, uint32(len(authErr.Error()))); err != nil {
+		return err
+	}
+	if err := binary.Write(c, binary.BigEndian, []byte(authErr.Error())); err != nil {
+		return err
+	}
+	if err := c.Flush(); err != nil {
+		return err
+	}
+	return authErr
 }
 
 // DefaultClientServerInitHandler default client server init handler
