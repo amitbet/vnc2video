@@ -11,6 +11,10 @@ import (
 	"io"
 )
 
+func (*TightPngEncoding) Supported(Conn) bool {
+	return true
+}
+
 func (enc *TightPngEncoding) Write(c Conn, rect *Rectangle) error {
 	if err := writeTightCC(c, enc.TightCC); err != nil {
 		return err

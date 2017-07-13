@@ -39,6 +39,10 @@ type AteniKVMPointerEvent struct {
 	_    [11]byte // padding
 }
 
+func (msg *AteniKVMPointerEvent) Supported(c Conn) bool {
+	return false
+}
+
 func (msg *AteniKVMPointerEvent) String() string {
 	return fmt.Sprintf("mask: %d, x:%d, y:%d", msg.Mask, msg.X, msg.Y)
 }
@@ -56,6 +60,9 @@ func (*AteniKVMPointerEvent) Read(c Conn) (ClientMessage, error) {
 }
 
 func (msg *AteniKVMPointerEvent) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
@@ -63,6 +70,10 @@ func (msg *AteniKVMPointerEvent) Write(c Conn) error {
 		return err
 	}
 	return c.Flush()
+}
+
+func (msg *AteniKVMKeyEvent) Supported(c Conn) bool {
+	return false
 }
 
 func (msg *AteniKVMKeyEvent) String() string {
@@ -82,6 +93,9 @@ func (*AteniKVMKeyEvent) Read(c Conn) (ClientMessage, error) {
 }
 
 func (msg *AteniKVMKeyEvent) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
 	}
@@ -94,6 +108,10 @@ func (msg *AteniKVMKeyEvent) Write(c Conn) error {
 // AteniKVMFrontGroundEvent unknown aten ikvm message
 type AteniKVMFrontGroundEvent struct {
 	_ [20]byte
+}
+
+func (msg *AteniKVMFrontGroundEvent) Supported(c Conn) bool {
+	return false
 }
 
 // String return string representation
@@ -118,6 +136,9 @@ func (*AteniKVMFrontGroundEvent) Read(c Conn) (ServerMessage, error) {
 
 // Write marshal message to conn
 func (msg *AteniKVMFrontGroundEvent) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	var pad [20]byte
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -131,6 +152,10 @@ func (msg *AteniKVMFrontGroundEvent) Write(c Conn) error {
 // AteniKVMKeepAliveEvent unknown aten ikvm message
 type AteniKVMKeepAliveEvent struct {
 	_ [1]byte
+}
+
+func (msg *AteniKVMKeepAliveEvent) Supported(c Conn) bool {
+	return false
 }
 
 // String return string representation
@@ -155,6 +180,9 @@ func (*AteniKVMKeepAliveEvent) Read(c Conn) (ServerMessage, error) {
 
 // Write marshal message to conn
 func (msg *AteniKVMKeepAliveEvent) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	var pad [1]byte
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -168,6 +196,10 @@ func (msg *AteniKVMKeepAliveEvent) Write(c Conn) error {
 // AteniKVMVideoGetInfo unknown aten ikvm message
 type AteniKVMVideoGetInfo struct {
 	_ [20]byte
+}
+
+func (msg *AteniKVMVideoGetInfo) Supported(c Conn) bool {
+	return false
 }
 
 // String return string representation
@@ -192,6 +224,9 @@ func (*AteniKVMVideoGetInfo) Read(c Conn) (ServerMessage, error) {
 
 // Write marshal message to conn
 func (msg *AteniKVMVideoGetInfo) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	var pad [4]byte
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -205,6 +240,10 @@ func (msg *AteniKVMVideoGetInfo) Write(c Conn) error {
 // AteniKVMMouseGetInfo unknown aten ikvm message
 type AteniKVMMouseGetInfo struct {
 	_ [2]byte
+}
+
+func (msg *AteniKVMMouseGetInfo) Supported(c Conn) bool {
+	return false
 }
 
 // String return string representation
@@ -229,6 +268,9 @@ func (*AteniKVMMouseGetInfo) Read(c Conn) (ServerMessage, error) {
 
 // Write marshal message to conn
 func (msg *AteniKVMMouseGetInfo) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	var pad [2]byte
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -242,6 +284,10 @@ func (msg *AteniKVMMouseGetInfo) Write(c Conn) error {
 // AteniKVMSessionMessage unknown aten ikvm message
 type AteniKVMSessionMessage struct {
 	_ [264]byte
+}
+
+func (msg *AteniKVMSessionMessage) Supported(c Conn) bool {
+	return false
 }
 
 // String return string representation
@@ -266,6 +312,9 @@ func (*AteniKVMSessionMessage) Read(c Conn) (ServerMessage, error) {
 
 // Write marshal message to conn
 func (msg *AteniKVMSessionMessage) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	var pad [264]byte
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err
@@ -279,6 +328,10 @@ func (msg *AteniKVMSessionMessage) Write(c Conn) error {
 // AteniKVMGetViewerLang unknown aten ikvm message
 type AteniKVMGetViewerLang struct {
 	_ [8]byte
+}
+
+func (msg *AteniKVMGetViewerLang) Supported(c Conn) bool {
+	return false
 }
 
 // String return string representation
@@ -303,6 +356,9 @@ func (*AteniKVMGetViewerLang) Read(c Conn) (ServerMessage, error) {
 
 // Write marshal message to conn
 func (msg *AteniKVMGetViewerLang) Write(c Conn) error {
+	if !msg.Supported(c) {
+		return nil
+	}
 	var pad [8]byte
 	if err := binary.Write(c, binary.BigEndian, msg.Type()); err != nil {
 		return err

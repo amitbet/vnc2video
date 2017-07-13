@@ -50,15 +50,16 @@ func NewRectangle() *Rectangle {
 // Write marshal color to conn
 func (clr *Color) Write(c Conn) error {
 	var err error
-	order := clr.pf.order()
+	pf := c.PixelFormat()
+	order := pf.order()
 	pixel := clr.cmIndex
 	if clr.pf.TrueColor != 0 {
-		pixel = uint32(clr.R) << clr.pf.RedShift
-		pixel |= uint32(clr.G) << clr.pf.GreenShift
-		pixel |= uint32(clr.B) << clr.pf.BlueShift
+		pixel = uint32(clr.R) << pf.RedShift
+		pixel |= uint32(clr.G) << pf.GreenShift
+		pixel |= uint32(clr.B) << pf.BlueShift
 	}
 
-	switch clr.pf.BPP {
+	switch pf.BPP {
 	case 8:
 		err = binary.Write(c, order, byte(pixel))
 	case 16:

@@ -4,6 +4,10 @@ type RawEncoding struct {
 	Colors []Color
 }
 
+func (*RawEncoding) Supported(Conn) bool {
+	return true
+}
+
 func (enc *RawEncoding) Write(c Conn, rect *Rectangle) error {
 	var err error
 

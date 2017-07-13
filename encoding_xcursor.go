@@ -16,6 +16,10 @@ type XCursorPseudoEncoding struct {
 	Bitmask    []byte
 }
 
+func (*XCursorPseudoEncoding) Supported(Conn) bool {
+	return true
+}
+
 func (*XCursorPseudoEncoding) Type() EncodingType { return EncXCursorPseudo }
 
 // Read implements the Encoding interface.

@@ -7,6 +7,10 @@ type CursorPseudoEncoding struct {
 	BitMask []byte
 }
 
+func (*CursorPseudoEncoding) Supported(Conn) bool {
+	return true
+}
+
 func (*CursorPseudoEncoding) Type() EncodingType { return EncCursorPseudo }
 
 func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {

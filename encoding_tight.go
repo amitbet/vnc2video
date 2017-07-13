@@ -28,6 +28,10 @@ const (
 
 type TightEncoding struct{}
 
+func (*TightEncoding) Supported(Conn) bool {
+	return true
+}
+
 func (*TightEncoding) Type() EncodingType { return EncTight }
 
 func (enc *TightEncoding) Write(c Conn, rect *Rectangle) error {

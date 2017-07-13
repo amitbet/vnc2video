@@ -83,6 +83,7 @@ type Encoding interface {
 	Type() EncodingType
 	Read(Conn, *Rectangle) error
 	Write(Conn, *Rectangle) error
+	Supported(Conn) bool
 }
 
 func setBit(n uint8, pos uint8) uint8 {

@@ -28,6 +28,10 @@ type AtenHermonSubrect struct {
 	Data []byte
 }
 
+func (*AtenHermon) Supported(Conn) bool {
+	return false
+}
+
 func (*AtenHermon) Type() EncodingType { return EncAtenHermon }
 
 func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
@@ -113,6 +117,14 @@ func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
 }
 
 func (enc *AtenHermon) Write(c Conn, rect *Rectangle) error {
+	if !enc.Supported(c) {
+		for _, ew := range enc.Encodings {
+			if err := ew.Write(c, rect); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 	var pad4 [4]byte
 
 	if err := binary.Write(c, binary.BigEndian, pad4); err != nil {
@@ -148,6 +160,10 @@ func (enc *AtenHermon) Write(c Conn, rect *Rectangle) error {
 	return nil
 }
 
+func (*AtenHermonSubrect) Supported(Conn) bool {
+	return false
+}
+
 func (enc *AtenHermonSubrect) Type() EncodingType {
 	return EncAtenHermonSubrect
 }
@@ -173,6 +189,9 @@ func (enc *AtenHermonSubrect) Read(c Conn, rect *Rectangle) error {
 }
 
 func (enc *AtenHermonSubrect) Write(c Conn, rect *Rectangle) error {
+	if !enc.Supported(c) {
+		return nil
+	}
 	if err := binary.Write(c, binary.BigEndian, enc.A); err != nil {
 		return err
 	}

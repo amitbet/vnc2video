@@ -70,6 +70,7 @@ type ClientMessage interface {
 	Type() ClientMessageType
 	Read(Conn) (ClientMessage, error)
 	Write(Conn) error
+	Supported(Conn) bool
 }
 
 type ServerMessage interface {
@@ -77,6 +78,7 @@ type ServerMessage interface {
 	Type() ServerMessageType
 	Read(Conn) (ServerMessage, error)
 	Write(Conn) error
+	Supported(Conn) bool
 }
 
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
@@ -89,6 +91,10 @@ type FramebufferUpdate struct {
 // String provide stringer
 func (msg *FramebufferUpdate) String() string {
 	return fmt.Sprintf("rects %d rectangle[]: { %v }", msg.NumRect, msg.Rects)
+}
+
+func (msg *FramebufferUpdate) Supported(c Conn) bool {
+	return true
 }
 
 // Type return MessageType
@@ -142,6 +148,10 @@ type ServerCutText struct {
 	_      [1]byte
 	Length uint32
 	Text   []byte
+}
+
+func (msg *ServerCutText) Supported(c Conn) bool {
+	return true
 }
 
 // String returns string
@@ -200,6 +210,10 @@ func (msg *ServerCutText) Write(c Conn) error {
 // Bell server message
 type Bell struct{}
 
+func (*Bell) Supported(c Conn) bool {
+	return true
+}
+
 // String return string
 func (*Bell) String() string {
 	return fmt.Sprintf("bell")
@@ -229,6 +243,10 @@ type SetColorMapEntries struct {
 	FirstColor uint16
 	ColorsNum  uint16
 	Colors     []Color
+}
+
+func (msg *SetColorMapEntries) Supported(c Conn) bool {
+	return true
 }
 
 // String returns string
@@ -308,6 +326,10 @@ type SetPixelFormat struct {
 	PF PixelFormat // pixel-format
 }
 
+func (msg *SetPixelFormat) Supported(c Conn) bool {
+	return true
+}
+
 // String returns string
 func (msg *SetPixelFormat) String() string {
 	return fmt.Sprintf("%s", msg.PF)
@@ -351,6 +373,10 @@ type SetEncodings struct {
 	_         [1]byte // padding
 	EncNum    uint16  // number-of-encodings
 	Encodings []EncodingType
+}
+
+func (msg *SetEncodings) Supported(c Conn) bool {
+	return true
 }
 
 // String return string
@@ -417,6 +443,10 @@ type FramebufferUpdateRequest struct {
 	Width, Height uint16 // width, height
 }
 
+func (msg *FramebufferUpdateRequest) Supported(c Conn) bool {
+	return true
+}
+
 // String returns string
 func (msg *FramebufferUpdateRequest) String() string {
 	return fmt.Sprintf("incremental: %d, x: %d, y: %d, width: %d, height: %d", msg.Inc, msg.X, msg.Y, msg.Width, msg.Height)
@@ -452,6 +482,10 @@ type KeyEvent struct {
 	Down uint8   // down-flag
 	_    [2]byte // padding
 	Key  Key     // key
+}
+
+func (msg *KeyEvent) Supported(c Conn) bool {
+	return true
 }
 
 // String returns string
@@ -490,6 +524,10 @@ type PointerEvent struct {
 	X, Y uint16 // x-, y-position
 }
 
+func (msg *PointerEvent) Supported(c Conn) bool {
+	return true
+}
+
 // String returns string
 func (msg *PointerEvent) String() string {
 	return fmt.Sprintf("mask %d, x: %d, y: %d", msg.Mask, msg.X, msg.Y)
@@ -525,6 +563,10 @@ type ClientCutText struct {
 	_      [3]byte // padding
 	Length uint32  // length
 	Text   []byte
+}
+
+func (msg *ClientCutText) Supported(c Conn) bool {
+	return true
 }
 
 // String returns string
