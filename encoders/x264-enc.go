@@ -29,7 +29,7 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		//"-i", "pipe:0",
 		"-i", "-",
 		"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
-		"-b:v", "2M",
+		"-b:v", "1M",
 		"-threads", "8",
 		//"-speed", "0",
 		//"-lossless", "1", //for vpx

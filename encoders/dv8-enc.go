@@ -11,6 +11,7 @@ import (
 
 type DV8ImageEncoder struct {
 	cmd   *exec.Cmd
+	binaryPath string
 	input io.WriteCloser
 }
 
@@ -66,11 +67,17 @@ func (enc *DV8ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *DV8ImageEncoder) Run() {
-	logger.Debugf("launching binary: %v", enc.cmd.Args)
+func (enc *DV8ImageEncoder) Run(encoderFilePath string, videoFileName string) {
+	if _, err := os.Stat(encoderFilePath); os.IsNotExist(err) {
+		logger.Error("encoder file doesn't exist in path:", encoderFilePath)
+		return
+	}
+	enc.binaryPath = encoderFilePath
+	enc.Init(videoFileName)
+	logger.Infof("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
 	if err != nil {
-		logger.Error("error while launching ffmpeg:", err)
+		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
 	}
 }
 func (enc *DV8ImageEncoder) Encode(img image.Image) {
