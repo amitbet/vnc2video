@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"image"
-	"log"
 	"net"
 	"os"
 	"time"
 	vnc "vnc2webm"
+	"vnc2webm/encoders"
 	"vnc2webm/logger"
 )
 
@@ -16,7 +16,7 @@ func main() {
 	// Establish TCP connection to VNC server.
 	nc, err := net.DialTimeout("tcp", os.Args[1], 5*time.Second)
 	if err != nil {
-		log.Fatalf("Error connecting to VNC host. %v", err)
+		logger.Fatalf("Error connecting to VNC host. %v", err)
 	}
 
 	logger.Debugf("starting up the client, connecting to: %s", os.Args[1])
@@ -41,31 +41,54 @@ func main() {
 
 	cc, err := vnc.Connect(context.Background(), nc, ccfg)
 	if err != nil {
-		log.Fatalf("Error negotiating connection to VNC host. %v", err)
+		logger.Fatalf("Error negotiating connection to VNC host. %v", err)
 	}
+	// out, err := os.Create("./output" + strconv.Itoa(counter) + ".jpg")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+	//vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 6}
+	vcodec := &encoders.X264ImageEncoder{}
+	counter := 0
+	//vcodec.Init("./output" + strconv.Itoa(counter))
+	go vcodec.Run("./ffmpeg", "./output.mp4")
+
+	screenImage := image.NewRGBA(image.Rect(0, 0, int(cc.Width()), int(cc.Height())))
+	for _, enc := range ccfg.Encodings {
+		myRenderer, ok := enc.(vnc.Renderer)
+
+		if ok {
+			myRenderer.SetTargetImage(screenImage)
+		}
+	}
+	// var out *os.File
+
 	logger.Debugf("connected to: %s", os.Args[1])
 	defer cc.Close()
 
 	cc.SetEncodings([]vnc.EncodingType{vnc.EncTight})
-	rect := image.Rect(0, 0, int(cc.Width()), int(cc.Height()))
-	screenImage := image.NewRGBA64(rect)
+	//rect := image.Rect(0, 0, int(cc.Width()), int(cc.Height()))
+	//screenImage := image.NewRGBA64(rect)
 	// Process messages coming in on the ServerMessage channel.
 	for {
 		select {
 		case err := <-errorCh:
 			panic(err)
 		case msg := <-cchClient:
-			log.Printf("Received client message type:%v msg:%v\n", msg.Type(), msg)
+			logger.Debugf("Received client message type:%v msg:%v\n", msg.Type(), msg)
 		case msg := <-cchServer:
-			log.Printf("Received server message type:%v msg:%v\n", msg.Type(), msg)
-			myRenderer, ok := msg.(vnc.Renderer)
+			logger.Debugf("Received server message type:%v msg:%v\n", msg.Type(), msg)
 
-			if ok {
-				err = myRenderer.Render(screenImage)
-				if err != nil {
-					log.Printf("Received server message type:%v msg:%v\n", msg.Type(), msg)
-				}
-			}
+			// out, err := os.Create("./output" + strconv.Itoa(counter) + ".jpg")
+			// if err != nil {
+			// 	fmt.Println(err)
+			// 	os.Exit(1)
+			// }
+
+			counter++
+			//jpeg.Encode(out, screenImage, nil)
+			vcodec.Encode(screenImage)
 			reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}
 			reqMsg.Write(cc)
 		}

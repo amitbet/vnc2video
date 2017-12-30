@@ -12,8 +12,6 @@ import (
 	"image/jpeg"
 	"io"
 	"math"
-	"os"
-	"strconv"
 	"vnc2webm/logger"
 )
 
@@ -79,9 +77,9 @@ func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA64, error) {
 			return nil, err
 		}
 		rgb := color.RGBA64{
-			R: uint16(tbytes[0]), //byte(col >> pf.RedShift & int32(pf.RedMax)),
-			G: uint16(tbytes[1]), //byte(col >> pf.GreenShift & int32(pf.GreenMax)),
-			B: uint16(tbytes[2]), //byte(col >> pf.BlueShift & int32(pf.BlueMax)),
+			R: uint16(tbytes[0]),
+			G: uint16(tbytes[1]),
+			B: uint16(tbytes[2]),
 			A: uint16(1),
 		}
 		return &rgb, nil
@@ -114,23 +112,8 @@ func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA64, error) {
 		B: uint16((pixel >> pf.BlueShift) & uint32(pf.BlueMax)),
 	}
 
-	// else {
-	// 	*clr = clr.cm[pixel]
-	// 	clr.cmIndex = pixel
-	// }
 	return &rgb, nil
 }
-
-// func getTightColor(bytes []byte, pf *PixelFormat) color.RGBA {
-// 	col := (int32(bytes[0])&0xff)<<16 | (int32(bytes[1])&0xff)<<8 | int32(bytes[2])&0xff
-// 	rgb := color.RGBA{
-// 		R: byte(col >> pf.RedShift & int32(pf.RedMax)),
-// 		G: byte(col >> pf.GreenShift & int32(pf.GreenMax)),
-// 		B: byte(col >> pf.BlueShift & int32(pf.BlueMax)),
-// 		A: byte(1),
-// 	}
-// 	return rgb
-// }
 
 func calcTightBytePerPixel(pf *PixelFormat) int {
 	bytesPerPixel := int(pf.BPP / 8)
@@ -153,16 +136,19 @@ func (enc *TightEncoding) resetDecoders(compControl uint8) {
 	}
 }
 
+func (enc *TightEncoding) SetTargetImage(img draw.Image) {
+	enc.Image = img
+}
+
 var counter int = 0
 
 func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 
-	var out *os.File
 	var err error
 	////////////
-	if counter > 40 {
-		os.Exit(1)
-	}
+	// if counter > 40 {
+	// 	os.Exit(1)
+	// }
 	////////////
 	pixelFmt := c.PixelFormat()
 	bytesPixel := calcTightBytePerPixel(&pixelFmt)
@@ -180,15 +166,16 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 	compctl, err := ReadUint8(c)
 
 	/////////////////
-	if out == nil {
-		out, err = os.Create("./output" + strconv.Itoa(counter) + "-" + strconv.Itoa(int(compctl)) + ".jpg")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	}
-	defer func() { counter++ }()
-	defer jpeg.Encode(out, enc.Image, nil)
+	// var out *os.File
+	// if out == nil {
+	// 	out, err = os.Create("./output" + strconv.Itoa(counter) + "-" + strconv.Itoa(int(compctl)) + ".jpg")
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		os.Exit(1)
+	// 	}
+	// }
+	// defer func() { counter++ }()
+	// defer jpeg.Encode(out, enc.Image, nil)
 	//////////////
 
 	if err != nil {
@@ -213,15 +200,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 			return err
 		}
 
-		//logger.Debugf("bytesPixel= %d, compctl= %d, color= %v", bytesPixel, compctl, rectColor)
-
-		//imgRect := image.Rect(0, 0, int(c.Width()), int(c.Height()))
-		// if enc.Image == nil {
-		// 	enc.Image = image.NewRGBA(imgRect)
-		// }
-
 		c1 := color.RGBAModel.Convert(rectColor).(color.RGBA)
-
 		dst := (enc.Image).(*image.RGBA) // enc.Image.(*image.RGBA)
 		var x, y int
 
@@ -232,14 +211,8 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 				dst.Pix[offset+1] = c1.G
 				dst.Pix[offset+2] = c1.B
 				dst.Pix[offset+3] = c1.A
-
-				//dst.Set(int(x), int(y), c1)
-				//dst.Pix[y*uint16(dst.Bounds().Max.Y)+x] = []uint8{rectColor.R, rectColor.G, rectColor.B}
 			}
 		}
-		enc.Image = dst
-
-		//draw.Draw(dst, imgRect, &image.Uniform{rectColor}, image.ZP, draw.Src)
 
 		if bytesPixel != 3 {
 			return fmt.Errorf("non tight bytesPerPixel format, should be 3 bytes")
@@ -337,27 +310,7 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 		}
 		//logger.Errorf("handleTightFilters: got tight data: %v", tightBytes)
 
-		myImg := enc.Image.(draw.Image)
-		bytePos := 0
-		bitPos := 0
-		var palettePos int
-		for i := 0; i < int(rect.Height); i++ {
-			for j := 0; j < int(rect.Width); j++ {
-				if len(palette) == 2 {
-					currByte := tightBytes[bytePos]
-					palettePos = int(currByte&byte(math.Pow(2.0, float64(bitPos)))) >> uint(bitPos)
-					//logger.Debugf("palletPos=%d, bitpos=%d, bytepos=%d", palettePos, bitPos, bytePos)
-					bytePos = bytePos + int((bitPos+1.0)/8.0)
-					bitPos = (bitPos + 1) % 8
-					//logger.Debugf("next: bitpos=%d, bytepos=%d", bitPos, bytePos)
-				} else {
-					palettePos = int(tightBytes[bytePos])
-					bytePos++
-				}
-				myImg.Set(int(rect.X)+j, int(rect.Y)+i, palette[palettePos])
-				//logger.Debugf("(%d,%d): pos: %d col:%d", int(rect.X)+j, int(rect.Y)+i, palettePos, palette[palettePos])
-			}
-		}
+		enc.drawTightPalette(rect, palette, tightBytes)
 		//enc.Image = myImg
 	case TightFilterGradient: //GRADIENT_FILTER
 		logger.Debugf("----GRADIENT_FILTER: bytesPixel=%d, counter=%d", bytesPixel, counter)
@@ -386,6 +339,29 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 	}
 
 	return
+}
+func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palette, tightBytes []byte) {
+	myImg := enc.Image.(draw.Image)
+	bytePos := 0
+	bitPos := 0
+	var palettePos int
+	for i := 0; i < int(rect.Height); i++ {
+		for j := 0; j < int(rect.Width); j++ {
+			if len(palette) == 2 {
+				currByte := tightBytes[bytePos]
+				palettePos = int(currByte&byte(math.Pow(2.0, float64(bitPos)))) >> uint(bitPos)
+				//logger.Debugf("palletPos=%d, bitpos=%d, bytepos=%d", palettePos, bitPos, bytePos)
+				bytePos = bytePos + int((bitPos+1.0)/8.0)
+				bitPos = (bitPos + 1) % 8
+				//logger.Debugf("next: bitpos=%d, bytepos=%d", bitPos, bytePos)
+			} else {
+				palettePos = int(tightBytes[bytePos])
+				bytePos++
+			}
+			myImg.Set(int(rect.X)+j, int(rect.Y)+i, palette[palettePos])
+			//logger.Debugf("(%d,%d): pos: %d col:%d", int(rect.X)+j, int(rect.Y)+i, palettePos, palette[palettePos])
+		}
+	}
 }
 func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 

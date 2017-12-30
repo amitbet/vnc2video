@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -15,6 +14,7 @@ import (
 	"sync"
 	"time"
 	vnc "vnc2webm"
+	"vnc2webm/logger"
 )
 
 type Auth struct {
@@ -189,7 +189,7 @@ func (auth *AuthVNCHTTP) Auth(c vnc.Conn) error {
 	if err != nil {
 		return fmt.Errorf("failed to get auth data: %s", err.Error())
 	}
-	log.Printf("http auth: %s\n", buf.Bytes())
+	logger.Infof("http auth: %s\n", buf.Bytes())
 	res.Body.Close()
 	data := strings.Split(buf.String(), " ")
 	if len(data) < 2 {
@@ -223,12 +223,12 @@ func (*AuthVNCHTTP) SubType() vnc.SecuritySubType {
 
 func main() {
 	go func() {
-		log.Println(http.ListenAndServe(":6060", nil))
+		logger.Info(http.ListenAndServe(":6060", nil))
 	}()
 
 	ln, err := net.Listen("tcp", ":6900")
 	if err != nil {
-		log.Fatalf("Error listen. %v", err)
+		logger.Fatalf("Error listen. %v", err)
 	}
 
 	schClient := make(chan vnc.ClientMessage)

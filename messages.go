@@ -3,7 +3,6 @@ package vnc2webm
 import (
 	"encoding/binary"
 	"fmt"
-	"image/draw"
 	"vnc2webm/logger"
 )
 
@@ -83,10 +82,6 @@ type ServerMessage interface {
 	Supported(Conn) bool
 }
 
-type Renderer interface {
-	Render(draw.Image) error
-}
-
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
 type FramebufferUpdate struct {
 	_       [1]byte      // pad
@@ -97,11 +92,6 @@ type FramebufferUpdate struct {
 // String provide stringer
 func (msg *FramebufferUpdate) String() string {
 	return fmt.Sprintf("rects %d rectangle[]: { %v }", msg.NumRect, msg.Rects)
-}
-
-func (msg *FramebufferUpdate) Render(draw.Image) error {
-	
-	return nil
 }
 
 func (msg *FramebufferUpdate) Supported(c Conn) bool {

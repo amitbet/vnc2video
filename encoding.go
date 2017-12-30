@@ -3,6 +3,7 @@ package vnc2webm
 import (
 	"bytes"
 	"image"
+	"image/draw"
 	"sync"
 )
 
@@ -76,6 +77,10 @@ var bPool = sync.Pool{
 		// value without an allocation:
 		return new(bytes.Buffer)
 	},
+}
+
+type Renderer interface {
+	SetTargetImage(draw.Image) 
 }
 
 // Encoding represents interface for vnc encoding

@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"log"
 	"math"
 	"net"
 	"time"
 	vnc "vnc2webm"
+	"vnc2webm/logger"
 )
 
 func main() {
 	ln, err := net.Listen("tcp", ":5900")
 	if err != nil {
-		log.Fatalf("Error listen. %v", err)
+		logger.Fatalf("Error listen. %v", err)
 	}
 
 	chServer := make(chan vnc.ClientMessage)
@@ -23,7 +23,7 @@ func main() {
 	im := image.NewRGBA(image.Rect(0, 0, width, height))
 	tick := time.NewTicker(time.Second / 2)
 	defer tick.Stop()
-	
+
 	cfg := &vnc.ServerConfig{
 		Width:  800,
 		Height: 600,
@@ -50,12 +50,12 @@ func main() {
 		case msg := <-chClient:
 			switch msg.Type() {
 			default:
-				log.Printf("11 Received message type:%v msg:%v\n", msg.Type(), msg)
+				logger.Debugf("11 Received message type:%v msg:%v\n", msg.Type(), msg)
 			}
 		case msg := <-chServer:
 			switch msg.Type() {
 			default:
-				log.Printf("22 Received message type:%v msg:%v\n", msg.Type(), msg)
+				logger.Debugf("22 Received message type:%v msg:%v\n", msg.Type(), msg)
 			}
 		}
 	}
