@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 import (
 	"encoding/binary"
@@ -172,7 +172,7 @@ func (rect *Rectangle) Read(c Conn) error {
 	case EncCopyRect:
 		rect.Enc = &CopyRectEncoding{}
 	case EncTight:
-		rect.Enc = &TightEncoding{}
+		rect.Enc = c.GetEncInstance(rect.EncType)
 	case EncTightPng:
 		rect.Enc = &TightPngEncoding{}
 	case EncRaw:

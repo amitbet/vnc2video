@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 import (
 	"bufio"
@@ -14,6 +14,9 @@ var _ Conn = (*ServerConn)(nil)
 // Config returns config for server conn
 func (c *ServerConn) Config() interface{} {
 	return c.cfg
+}
+func (c *ServerConn) GetEncInstance(typ EncodingType) Encoding {
+	return &TightEncoding{}
 }
 
 // Conn returns underlining server net.Conn

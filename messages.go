@@ -1,8 +1,10 @@
-package vnc
+package vnc2webm
 
 import (
 	"encoding/binary"
 	"fmt"
+	"image/draw"
+	"vnc2webm/logger"
 )
 
 var (
@@ -81,6 +83,10 @@ type ServerMessage interface {
 	Supported(Conn) bool
 }
 
+type Renderer interface {
+	Render(draw.Image) error
+}
+
 // FramebufferUpdate holds a FramebufferUpdate wire format message.
 type FramebufferUpdate struct {
 	_       [1]byte      // pad
@@ -91,6 +97,11 @@ type FramebufferUpdate struct {
 // String provide stringer
 func (msg *FramebufferUpdate) String() string {
 	return fmt.Sprintf("rects %d rectangle[]: { %v }", msg.NumRect, msg.Rects)
+}
+
+func (msg *FramebufferUpdate) Render(draw.Image) error {
+	
+	return nil
 }
 
 func (msg *FramebufferUpdate) Supported(c Conn) bool {
@@ -115,9 +126,12 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 	}
 	for i := uint16(0); i < msg.NumRect; i++ {
 		rect := NewRectangle()
+		//logger.Debugf("----------RECT %d----------:", i)
+
 		if err := rect.Read(c); err != nil {
 			return nil, err
 		}
+		logger.Debugf("----End RECT #%d Info (%dx%d) encType:%s", i, rect.Width, rect.Height, rect.EncType)
 		msg.Rects = append(msg.Rects, rect)
 	}
 	return &msg, nil

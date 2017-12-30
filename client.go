@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 import (
 	"bufio"
@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"vnc2webm/logger"
 )
 
 var (
@@ -49,6 +50,15 @@ var _ Conn = (*ClientConn)(nil)
 // Config returns connection config
 func (c *ClientConn) Config() interface{} {
 	return c.cfg
+}
+
+func (c *ClientConn) GetEncInstance(typ EncodingType) Encoding {
+	for _, enc := range c.encodings {
+		if enc.Type() == typ {
+			return enc
+		}
+	}
+	return nil
 }
 
 // Wait waiting for connection close
@@ -183,7 +193,6 @@ type ClientConn struct {
 	bw       *bufio.Writer
 	cfg      *ClientConfig
 	protocol string
-
 	// If the pixel format uses a color map, then this is the color
 	// map that is used. This should not be modified directly, since
 	// the data comes from the server.
@@ -238,11 +247,12 @@ type DefaultClientMessageHandler struct{}
 
 // Handle handles server messages.
 func (*DefaultClientMessageHandler) Handle(c Conn) error {
+	logger.Debug("starting DefaultClientMessageHandler")
 	cfg := c.Config().(*ClientConfig)
 	var err error
 	var wg sync.WaitGroup
 	wg.Add(2)
-	defer c.Close()
+	//defer c.Close()
 
 	serverMessages := make(map[ServerMessageType]ServerMessage)
 	for _, m := range cfg.Messages {
@@ -272,13 +282,17 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 					cfg.ErrorCh <- err
 					return
 				}
+				logger.Debugf("got server message, msgType=%d", messageType)
 				msg, ok := serverMessages[messageType]
 				if !ok {
 					err = fmt.Errorf("unknown message-type: %v", messageType)
 					cfg.ErrorCh <- err
 					return
 				}
+
 				parsedMsg, err := msg.Read(c)
+				logger.Debugf("============== End Message: type=%d ==============", messageType)
+
 				if err != nil {
 					cfg.ErrorCh <- err
 					return
@@ -287,8 +301,25 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 			}
 		}
 	}()
+	//encodings := c.Encodings()
+	encTypes := make(map[EncodingType]EncodingType)
+	for _, myEnc := range c.Encodings() {
+		encTypes[myEnc.Type()] = myEnc.Type()
+		//encTypes = append(encTypes, myEnc.Type())
+	}
+	v := make([]EncodingType, 0, len(encTypes))
 
-	wg.Wait()
+	for _, value := range encTypes {
+		v = append(v, value)
+	}
+	logger.Debugf("setting encodings: %v", v)
+	c.SetEncodings(v)
+
+	firstMsg := FramebufferUpdateRequest{Inc: 0, X: 0, Y: 0, Width: c.Width(), Height: c.Height()}
+	logger.Debugf("sending initial req message: %v", firstMsg)
+	firstMsg.Write(c)
+
+	//wg.Wait()
 	return nil
 }
 

@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 import (
 	"bytes"

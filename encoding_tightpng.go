@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"image/png"
 	"io"
+	"vnc2webm/logger"
 )
 
 func (*TightPngEncoding) Supported(Conn) bool {
@@ -61,6 +62,7 @@ func (*TightPngEncoding) Type() EncodingType { return EncTightPng }
 
 func (enc *TightPngEncoding) Read(c Conn, rect *Rectangle) error {
 	tcc, err := readTightCC(c)
+	logger.Debug("starting to read a tight rect: %v", rect)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 // Button represents a mask of pointer presses/releases.
 type Button uint8

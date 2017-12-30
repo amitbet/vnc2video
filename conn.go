@@ -1,4 +1,4 @@
-package vnc
+package vnc2webm
 
 import (
 	"io"
@@ -28,4 +28,5 @@ type Conn interface {
 	SetProtoVersion(string)
 	SetSecurityHandler(SecurityHandler) error
 	SecurityHandler() SecurityHandler
+	GetEncInstance(EncodingType) Encoding
 }

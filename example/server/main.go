@@ -8,8 +8,7 @@ import (
 	"math"
 	"net"
 	"time"
-
-	vnc "github.com/vtolstov/go-vnc"
+	vnc "vnc2webm"
 )
 
 func main() {
@@ -24,21 +23,22 @@ func main() {
 	im := image.NewRGBA(image.Rect(0, 0, width, height))
 	tick := time.NewTicker(time.Second / 2)
 	defer tick.Stop()
-
+	
 	cfg := &vnc.ServerConfig{
-		Width:             800,
-		Height:            600,
-		VersionHandler:    vnc.ServerVersionHandler,
-		SecurityHandler:   vnc.ServerSecurityHandler,
-		SecurityHandlers:  []vnc.SecurityHandler{&vnc.ClientAuthNone{}},
-		ClientInitHandler: vnc.ServerClientInitHandler,
-		ServerInitHandler: vnc.ServerServerInitHandler,
-		Encodings:         []vnc.Encoding{&vnc.RawEncoding{}},
-		PixelFormat:       vnc.PixelFormat32bit,
-		ClientMessageCh:   chServer,
-		ServerMessageCh:   chClient,
-		ClientMessages:    vnc.DefaultClientMessages,
+		Width:  800,
+		Height: 600,
+		//VersionHandler:    vnc.ServerVersionHandler,
+		//SecurityHandler:   vnc.ServerSecurityHandler,
+		SecurityHandlers: []vnc.SecurityHandler{&vnc.ClientAuthNone{}},
+		//ClientInitHandler: vnc.ServerClientInitHandler,
+		//ServerInitHandler: vnc.ServerServerInitHandler,
+		Encodings:       []vnc.Encoding{&vnc.RawEncoding{}},
+		PixelFormat:     vnc.PixelFormat32bit,
+		ClientMessageCh: chServer,
+		ServerMessageCh: chClient,
+		Messages:        vnc.DefaultClientMessages,
 	}
+	cfg.Handlers = vnc.DefaultServerHandlers
 	go vnc.Serve(context.Background(), ln, cfg)
 
 	// Process messages coming in on the ClientMessage channel.

@@ -14,8 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	vnc "github.com/vtolstov/go-vnc"
+	vnc "vnc2webm"
 )
 
 type Auth struct {
@@ -53,9 +52,9 @@ func newConn(hostport string, password []byte) (vnc.Conn, chan vnc.ClientMessage
 		PixelFormat:      vnc.PixelFormat32bit,
 		ClientMessageCh:  cchClient,
 		ServerMessageCh:  cchServer,
-		ServerMessages:   vnc.DefaultServerMessages,
-		Encodings:        []vnc.Encoding{&vnc.RawEncoding{}},
-		ErrorCh:          errorCh,
+		//ServerMessages:   vnc.DefaultServerMessages,
+		Encodings: []vnc.Encoding{&vnc.RawEncoding{}},
+		ErrorCh:   errorCh,
 	}
 	csrv := make(chan vnc.Conn)
 	inp := make(chan vnc.ClientMessage)
@@ -78,7 +77,7 @@ func handleIO(cli vnc.Conn, inp chan vnc.ClientMessage, out chan vnc.ServerMessa
 	ccfg := cli.Config().(*vnc.ClientConfig)
 	defer cli.Close()
 	var conns []vnc.Conn
-	var prepared bool
+	//var prepared bool
 
 	for {
 		select {
@@ -247,8 +246,8 @@ func main() {
 		PixelFormat:     vnc.PixelFormat32bit,
 		ClientMessageCh: schClient,
 		ServerMessageCh: schServer,
-		ClientMessages:  vnc.DefaultClientMessages,
-		DesktopName:     []byte("vnc proxy"),
+		//ClientMessages:  vnc.DefaultClientMessages,
+		DesktopName: []byte("vnc proxy"),
 	}
 	scfg.Handlers = append(scfg.Handlers, vnc.DefaultServerHandlers...)
 	scfg.Handlers = append(scfg.Handlers[:len(scfg.Handlers)-1], &HijackHandler{})
