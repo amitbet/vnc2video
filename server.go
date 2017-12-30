@@ -16,7 +16,12 @@ func (c *ServerConn) Config() interface{} {
 	return c.cfg
 }
 func (c *ServerConn) GetEncInstance(typ EncodingType) Encoding {
-	return &TightEncoding{}
+	for _, enc := range c.encodings {
+		if enc.Type() == typ {
+			return enc
+		}
+	}
+	return nil
 }
 
 // Conn returns underlining server net.Conn

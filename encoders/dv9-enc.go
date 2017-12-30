@@ -10,9 +10,9 @@ import (
 )
 
 type DV9ImageEncoder struct {
-	cmd   *exec.Cmd
+	cmd        *exec.Cmd
 	binaryPath string
-	input io.WriteCloser
+	input      io.WriteCloser
 }
 
 func (enc *DV9ImageEncoder) Init(videoFileName string) {
@@ -25,18 +25,18 @@ func (enc *DV9ImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "3",
+		"-r", "5",
 		//"-i", "pipe:0",
 		"-i", "-",
 		"-vcodec", "libvpx-vp9", //"libvpx",//"libvpx-vp9"//"libx264"
-		"-b:v", "2M",
+		"-b:v", "1M",
 		"-threads", "8",
 		//"-speed", "0",
 		//"-lossless", "1", //for vpx
 		// "-tile-columns", "6",
 		//"-frame-parallel", "1",
 		// "-an", "-f", "webm",
-		"-cpu-used", "-16",
+		"-cpu-used", "-8",
 
 		"-preset", "ultrafast",
 		"-deadline", "realtime",

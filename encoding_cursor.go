@@ -1,10 +1,12 @@
 package vnc2webm
 
 import "encoding/binary"
+import "image"
 
 type CursorPseudoEncoding struct {
 	Colors  []Color
 	BitMask []byte
+	Image   image.Image
 }
 
 func (*CursorPseudoEncoding) Supported(Conn) bool {
@@ -24,6 +26,7 @@ func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 	if err := binary.Read(c, binary.BigEndian, &bitmask); err != nil {
 		return err
 	}
+
 	/*
 		rectStride := 4 * rect.Width
 		for i := uint16(0); i < rect.Height; i++ {

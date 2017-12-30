@@ -50,7 +50,10 @@ func main() {
 	// }
 	//vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 6}
 	vcodec := &encoders.X264ImageEncoder{}
-	counter := 0
+	//vcodec := &encoders.DV8ImageEncoder{}
+	//vcodec := &encoders.DV9ImageEncoder{}
+
+	//counter := 0
 	//vcodec.Init("./output" + strconv.Itoa(counter))
 	go vcodec.Run("./ffmpeg", "./output.mp4")
 
@@ -85,12 +88,13 @@ func main() {
 			// 	fmt.Println(err)
 			// 	os.Exit(1)
 			// }
-
-			counter++
-			//jpeg.Encode(out, screenImage, nil)
-			vcodec.Encode(screenImage)
-			reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}
-			reqMsg.Write(cc)
+			if msg.Type() == vnc.FramebufferUpdateMsgType {
+				//counter++
+				//jpeg.Encode(out, screenImage, nil)
+				vcodec.Encode(screenImage)
+				reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}
+				reqMsg.Write(cc)
+			}
 		}
 	}
 	cc.Wait()
