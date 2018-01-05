@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"strings"
 )
 
 //var _ draw.Drawer = (*ServerConn)(nil)
@@ -169,28 +168,31 @@ func (rect *Rectangle) Read(c Conn) error {
 	}
 
 	switch rect.EncType {
-	case EncCopyRect:
-		rect.Enc = &CopyRectEncoding{}
-	case EncTight:
-		rect.Enc = c.GetEncInstance(rect.EncType)
-	case EncTightPng:
-		rect.Enc = &TightPngEncoding{}
-	case EncRaw:
-		if strings.HasPrefix(c.Protocol(), "aten") {
-			rect.Enc = &AtenHermon{}
-		} else {
-			rect.Enc = &RawEncoding{}
-		}
+	// case EncCopyRect:
+	// 	rect.Enc = &CopyRectEncoding{}
+	// case EncTight:
+	// 	rect.Enc = c.GetEncInstance(rect.EncType)
+	// case EncTightPng:
+	// 	rect.Enc = &TightPngEncoding{}
+	// case EncRaw:
+	// 	if strings.HasPrefix(c.Protocol(), "aten") {
+	// 		rect.Enc = &AtenHermon{}
+	// 	} else {
+	// 		rect.Enc = &RawEncoding{}
+	// 	}
 	case EncDesktopSizePseudo:
 		rect.Enc = &DesktopSizePseudoEncoding{}
 	case EncDesktopNamePseudo:
 		rect.Enc = &DesktopNamePseudoEncoding{}
-	case EncXCursorPseudo:
-		rect.Enc = &XCursorPseudoEncoding{}
-	case EncAtenHermon:
-		rect.Enc = &AtenHermon{}
+	// case EncXCursorPseudo:
+	// 	rect.Enc = &XCursorPseudoEncoding{}
+	// case EncAtenHermon:
+	// 	rect.Enc = &AtenHermon{}
 	default:
-		return fmt.Errorf("unsupported encoding %s", rect.EncType)
+		rect.Enc = c.GetEncInstance(rect.EncType)
+		if rect.Enc == nil {
+			return fmt.Errorf("unsupported encoding %s", rect.EncType)
+		}
 	}
 
 	return rect.Enc.Read(c, rect)

@@ -224,6 +224,12 @@ type ClientConn struct {
 	errorCh chan error
 }
 
+func (cc *ClientConn) ResetAllEncodings() {
+	for _, enc := range cc.encodings {
+		enc.Reset()
+	}
+}
+
 // NewClientConn creates new client conn using config
 func NewClientConn(c net.Conn, cfg *ClientConfig) (*ClientConn, error) {
 	if len(cfg.Encodings) == 0 {

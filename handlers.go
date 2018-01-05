@@ -288,7 +288,12 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	} else {
 		c.SetWidth(srvInit.FBWidth)
 		c.SetHeight(srvInit.FBHeight)
-		c.SetPixelFormat(srvInit.PixelFormat)
+
+		//telling the server to use 32bit pixels (with 24 dept, tight standard format)
+		pixelMsg:=SetPixelFormat{PF: PixelFormat32bit}
+		pixelMsg.Write(c)
+		c.SetPixelFormat(PixelFormat32bit)
+		//c.SetPixelFormat(srvInit.PixelFormat)
 	}
 	if c.Protocol() == "aten1" {
 		ikvm := struct {

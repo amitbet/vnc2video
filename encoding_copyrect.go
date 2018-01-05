@@ -9,7 +9,9 @@ type CopyRectEncoding struct {
 func (*CopyRectEncoding) Supported(Conn) bool {
 	return true
 }
-
+func (*CopyRectEncoding) Reset() error {
+	return nil
+}
 func (*CopyRectEncoding) Type() EncodingType { return EncCopyRect }
 
 func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {

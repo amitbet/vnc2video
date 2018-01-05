@@ -39,7 +39,7 @@ const (
 type TightEncoding struct {
 	Image        image.Image
 	decoders     []io.Reader
-	decoderBuffs []*bytes.Reader
+	decoderBuffs []*bytes.Buffer
 }
 
 var instance *TightEncoding
@@ -127,9 +127,17 @@ func calcTightBytePerPixel(pf *PixelFormat) int {
 	return bytesPerPixelTight
 }
 
+func (enc *TightEncoding) Reset() error {
+	//enc.decoders = make([]io.Reader, 4)
+	//enc.decoderBuffs = make([]*bytes.Buffer, 4)
+	return nil
+}
+
 func (enc *TightEncoding) resetDecoders(compControl uint8) {
+	logger.Debugf("###resetDecoders compctl :%d", 0x0F&compControl)
 	for i := 0; i < 4; i++ {
 		if (compControl&1) != 0 && enc.decoders[i] != nil {
+			logger.Debugf("###resetDecoders - resetting decoder #%d", i)
 			enc.decoders[i] = nil //.(zlib.Resetter).Reset(nil,nil);
 		}
 		compControl >>= 1
@@ -177,6 +185,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 	// defer func() { counter++ }()
 	// defer jpeg.Encode(out, enc.Image, nil)
 	//////////////
+	logger.Debugf("-----------READ-Tight-encoding compctl=%d -------------", compctl)
 
 	if err != nil {
 		logger.Errorf("error in handling tight encoding: %v", err)
@@ -529,6 +538,8 @@ func ReadUint8(r Conn) (uint8, error) {
 }
 
 func (enc *TightEncoding) ReadTightData(dataSize int, c Conn, decoderId int) ([]byte, error) {
+
+	logger.Debugf(">>> Reading zipped tight data from decoder: %d", decoderId)
 	if int(dataSize) < TightMinToCompress {
 		return ReadBytes(int(dataSize), c)
 	}
@@ -543,13 +554,14 @@ func (enc *TightEncoding) ReadTightData(dataSize int, c Conn, decoderId int) ([]
 	}
 	var r io.Reader
 	if enc.decoders[decoderId] == nil {
-		b := bytes.NewReader(zippedBytes)
+		b := bytes.NewBuffer(zippedBytes)
 		r, err = zlib.NewReader(b)
 		enc.decoders[decoderId] = r
 		enc.decoderBuffs[decoderId] = b
 	} else {
 		b := enc.decoderBuffs[decoderId]
-		b.Reset(zippedBytes) //set the underlaying buffer to new content (not resetting the decoder zlib stream)
+
+		b.Write(zippedBytes) //set the underlaying buffer to new content (not resetting the decoder zlib stream)
 		r = enc.decoders[decoderId]
 	}
 

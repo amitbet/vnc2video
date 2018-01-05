@@ -15,6 +15,9 @@ import (
 func (*TightPngEncoding) Supported(Conn) bool {
 	return true
 }
+func (*TightPngEncoding) Reset() error {
+	return nil
+}
 
 func (enc *TightPngEncoding) Write(c Conn, rect *Rectangle) error {
 	if err := writeTightCC(c, enc.TightCC); err != nil {

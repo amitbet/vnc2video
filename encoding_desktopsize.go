@@ -6,7 +6,9 @@ type DesktopSizePseudoEncoding struct{}
 func (*DesktopSizePseudoEncoding) Supported(Conn) bool {
 	return true
 }
-
+func (*DesktopSizePseudoEncoding) Reset() error {
+	return nil
+}
 func (*DesktopSizePseudoEncoding) Type() EncodingType { return EncDesktopSizePseudo }
 
 // Read implements the Encoding interface.

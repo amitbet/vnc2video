@@ -10,7 +10,9 @@ type DesktopNamePseudoEncoding struct {
 func (*DesktopNamePseudoEncoding) Supported(Conn) bool {
 	return true
 }
-
+func (*DesktopNamePseudoEncoding) Reset() error {
+	return nil
+}
 func (*DesktopNamePseudoEncoding) Type() EncodingType { return EncDesktopNamePseudo }
 
 // Read implements the Encoding interface.

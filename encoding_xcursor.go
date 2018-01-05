@@ -19,6 +19,9 @@ type XCursorPseudoEncoding struct {
 func (*XCursorPseudoEncoding) Supported(Conn) bool {
 	return true
 }
+func (*XCursorPseudoEncoding) Reset() error {
+	return nil
+}
 
 func (*XCursorPseudoEncoding) Type() EncodingType { return EncXCursorPseudo }
 

@@ -33,6 +33,9 @@ func (*AtenHermon) Supported(Conn) bool {
 }
 
 func (*AtenHermon) Type() EncodingType { return EncAtenHermon }
+func (*AtenHermon) Reset() error {
+	return nil
+}
 
 func (enc *AtenHermon) Read(c Conn, rect *Rectangle) error {
 	var pad4 [4]byte
@@ -167,7 +170,9 @@ func (*AtenHermonSubrect) Supported(Conn) bool {
 func (enc *AtenHermonSubrect) Type() EncodingType {
 	return EncAtenHermonSubrect
 }
-
+func (*AtenHermonSubrect) Reset() error {
+	return nil
+}
 func (enc *AtenHermonSubrect) Read(c Conn, rect *Rectangle) error {
 	if err := binary.Read(c, binary.BigEndian, &enc.A); err != nil {
 		return err

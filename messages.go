@@ -3,6 +3,7 @@ package vnc2webm
 import (
 	"encoding/binary"
 	"fmt"
+
 	"vnc2webm/logger"
 )
 
@@ -120,6 +121,9 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 
 		if err := rect.Read(c); err != nil {
 			return nil, err
+		}
+		if rect.EncType == EncDesktopSizePseudo {
+			c.(*ClientConn).ResetAllEncodings()
 		}
 		logger.Debugf("----End RECT #%d Info (%dx%d) encType:%s", i, rect.Width, rect.Height, rect.EncType)
 		msg.Rects = append(msg.Rects, rect)
