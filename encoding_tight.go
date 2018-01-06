@@ -249,7 +249,9 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		if err != nil {
 			logger.Error("problem while decoding jpeg:", err)
 		}
-		enc.Image = img
+		dest := enc.Image.(draw.Image)
+		draw.Draw(dest, dest.Bounds(), img, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
+
 
 		return nil
 	default:

@@ -93,9 +93,10 @@ func main() {
 				//jpeg.Encode(out, screenImage, nil)
 				vcodec.Encode(screenImage)
 				reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}
+				//cc.ResetAllEncodings()
 				reqMsg.Write(cc)
 			}
 		}
 	}
-	cc.Wait()
+	//cc.Wait()
 }
