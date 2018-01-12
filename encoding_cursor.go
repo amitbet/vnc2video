@@ -1,15 +1,15 @@
-package vnc2webm
+package vnc2video
 
 import (
 	"encoding/binary"
-	"image"
+	"image/color"
 	"image/draw"
 )
 
 type CursorPseudoEncoding struct {
 	Colors  []Color
 	BitMask []byte
-	Image   image.Image
+	Image   draw.Image
 }
 
 func (*CursorPseudoEncoding) Supported(Conn) bool {
@@ -23,15 +23,35 @@ func (enc *CursorPseudoEncoding) SetTargetImage(img draw.Image) {
 func (*CursorPseudoEncoding) Type() EncodingType { return EncCursorPseudo }
 
 func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
-	rgba := make([]byte, int(rect.Height)*int(rect.Width)*int(c.PixelFormat().BPP/8))
-
-	if err := binary.Read(c, binary.BigEndian, &rgba); err != nil {
-		return err
+	//rgba := make([]byte, int(rect.Height)*int(rect.Width)*int(c.PixelFormat().BPP/8))
+	numColors := int(rect.Height) * int(rect.Width)
+	colors := make([]color.Color, numColors)
+	var err error
+	pf := c.PixelFormat()
+	for i := 0; i < numColors; i++ {
+		colors[i], err = ReadColor(c, &pf)
+		if err != nil {
+			return err
+		}
 	}
+	// if err := binary.Read(c, binary.BigEndian, &rgba); err != nil {
+	// 	return err
+	// }
 
 	bitmask := make([]byte, int((rect.Width+7)/8*rect.Height))
 	if err := binary.Read(c, binary.BigEndian, &bitmask); err != nil {
 		return err
+	}
+	scanLine := (rect.Width + 7) / 8
+
+	//int[] cursorPixels = new int[rect.width * rect.height];
+	for y := 0; y < int(rect.Height); y++ {
+		for x := 0; x < int(rect.Width); x++ {
+			offset := y*int(rect.Width) + x
+			if bitmask[y*int(scanLine)+x/8]&(1<<uint(7-x%8)) > 0 {
+				enc.Image.Set(x, y, colors[offset])
+			}
+		}
 	}
 
 	/*
@@ -41,10 +61,10 @@ func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 				for idx, k := j/8, 7; k >= 0; k-- {
 					if (bitmask[idx] & (1 << uint(k))) == 0 {
 						pIdx := j*4 + i*rectStride
-						rgbaBuffer[pIdx] = 0
-						rgbaBuffer[pIdx+1] = 0
-						rgbaBuffer[pIdx+2] = 0
-						rgbaBuffer[pIdx+3] = 0
+						rgba[pIdx] = 0
+						rgba[pIdx+1] = 0
+						rgba[pIdx+2] = 0
+						rgba[pIdx+3] = 0
 					}
 				}
 			}

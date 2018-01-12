@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"vnc2webm/logger"
+	"vnc2video/logger"
 )
 
 type X264ImageEncoder struct {

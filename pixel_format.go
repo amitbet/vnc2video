@@ -1,6 +1,6 @@
 // Implementation of RFC 6143 §7.4 Pixel Format Data Structure.
 
-package vnc2webm
+package vnc2video
 
 import (
 	"bytes"

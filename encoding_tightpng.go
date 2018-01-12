@@ -1,4 +1,4 @@
-package vnc2webm
+package vnc2video
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"image/draw"
 	"image/png"
 	"io"
-	"vnc2webm/logger"
+	"vnc2video/logger"
 )
 
 func (*TightPngEncoding) Supported(Conn) bool {

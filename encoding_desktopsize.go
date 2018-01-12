@@ -1,4 +1,4 @@
-package vnc2webm
+package vnc2video
 
 // DesktopSizePseudoEncoding represents a desktop size message from the server.
 type DesktopSizePseudoEncoding struct{}

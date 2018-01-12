@@ -1,10 +1,10 @@
-package vnc2webm
+package vnc2video
 
 import (
 	"encoding/binary"
 	"fmt"
 
-	"vnc2webm/logger"
+	"vnc2video/logger"
 )
 
 var (

@@ -1,4 +1,4 @@
-package vnc2webm
+package vnc2video
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"os"
 	//"vncproxy/common"
 	//"vncproxy/encodings"
-	"vnc2webm/logger"
+	"vnc2video/logger"
 	//"vncproxy/encodings"
 	//"vncproxy/encodings"
 )

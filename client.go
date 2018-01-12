@@ -1,4 +1,4 @@
-package vnc2webm
+package vnc2video
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"vnc2webm/logger"
+	"vnc2video/logger"
 )
 
 var (

@@ -6,9 +6,9 @@ import (
 	"net"
 	"os"
 	"time"
-	vnc "vnc2webm"
-	"vnc2webm/encoders"
-	"vnc2webm/logger"
+	vnc "vnc2video"
+	"vnc2video/encoders"
+	"vnc2video/logger"
 )
 
 func main() {

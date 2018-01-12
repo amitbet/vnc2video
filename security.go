@@ -1,4 +1,4 @@
-package vnc2webm
+package vnc2video
 
 type SecurityType uint8
 

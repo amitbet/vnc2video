@@ -5,7 +5,7 @@ import (
 	"image"
 	"image/jpeg"
 	"strings"
-	"vnc2webm/logger"
+	"vnc2video/logger"
 
 	"github.com/icza/mjpeg"
 )

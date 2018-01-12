@@ -1,4 +1,4 @@
-package vnc2webm
+package vnc2video
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"image/jpeg"
 	"io"
 	"math"
-	"vnc2webm/logger"
+	"vnc2video/logger"
 )
 
 //go:generate stringer -type=TightCompression
@@ -251,7 +251,6 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		}
 		dest := enc.Image.(draw.Image)
 		draw.Draw(dest, dest.Bounds(), img, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
-
 
 		return nil
 	default:
@@ -530,8 +529,16 @@ func (enc *TightEncoding) readTightPalette(connReader Conn, bytesPixel int) (col
 	return paletteColors, nil
 }
 
-func ReadUint8(r Conn) (uint8, error) {
+func ReadUint8(r io.Reader) (uint8, error) {
 	var myUint uint8
+	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
+		return 0, err
+	}
+
+	return myUint, nil
+}
+func ReadUint32(r io.Reader) (uint32, error) {
+	var myUint uint32
 	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
 		return 0, err
 	}

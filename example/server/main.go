@@ -7,8 +7,8 @@ import (
 	"math"
 	"net"
 	"time"
-	vnc "vnc2webm"
-	"vnc2webm/logger"
+	vnc "vnc2video"
+	"vnc2video/logger"
 )
 
 func main() {
