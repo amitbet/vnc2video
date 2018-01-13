@@ -35,8 +35,13 @@ func main() {
 		ClientMessageCh: cchClient,
 		ServerMessageCh: cchServer,
 		Messages:        vnc.DefaultServerMessages,
-		Encodings:       []vnc.Encoding{&vnc.RawEncoding{}, &vnc.TightEncoding{}},
-		ErrorCh:         errorCh,
+		Encodings: []vnc.Encoding{
+			&vnc.RawEncoding{},
+			//&vnc.TightEncoding{},
+			&vnc.HextileEncoding{},
+			//&vnc.CursorPseudoEncoding{},
+		},
+		ErrorCh: errorCh,
 	}
 
 	cc, err := vnc.Connect(context.Background(), nc, ccfg)
@@ -55,7 +60,8 @@ func main() {
 
 	//counter := 0
 	//vcodec.Init("./output" + strconv.Itoa(counter))
-	go vcodec.Run("./ffmpeg", "./output.mp4")
+	//go vcodec.Run("./ffmpeg", "./output.mp4")
+	go vcodec.Run("/Users/amitbet/Dropbox/go/src/vnc2webm/example/file-reader/ffmpeg", "./output.mp4")
 
 	screenImage := image.NewRGBA(image.Rect(0, 0, int(cc.Width()), int(cc.Height())))
 	for _, enc := range ccfg.Encodings {
@@ -70,7 +76,7 @@ func main() {
 	logger.Debugf("connected to: %s", os.Args[1])
 	defer cc.Close()
 
-	cc.SetEncodings([]vnc.EncodingType{vnc.EncTight})
+	cc.SetEncodings([]vnc.EncodingType{vnc.EncHextile})
 	//rect := image.Rect(0, 0, int(cc.Width()), int(cc.Height()))
 	//screenImage := image.NewRGBA64(rect)
 	// Process messages coming in on the ServerMessage channel.

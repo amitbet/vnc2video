@@ -20,6 +20,10 @@ func (enc *CursorPseudoEncoding) SetTargetImage(img draw.Image) {
 	enc.Image = img
 }
 
+func (enc *CursorPseudoEncoding) Reset() error {
+	return nil
+}
+
 func (*CursorPseudoEncoding) Type() EncodingType { return EncCursorPseudo }
 
 func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
