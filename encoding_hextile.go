@@ -101,7 +101,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 				//logger.Debugf("%v %v", rBounds, bgCol)
 			}
 			rBounds := image.Rectangle{Min: image.Point{int(tx), int(ty)}, Max: image.Point{int(tx) + int(tw), int(ty) + int(th)}}
-			logger.Debugf("filling background rect: %v, col: %v", rBounds, bgCol)
+			//logger.Debugf("filling background rect: %v, col: %v", rBounds, bgCol)
 			FillRect(z.Image, &rBounds, bgCol)
 
 			if (subencoding & HextileForegroundSpecified) != 0 {

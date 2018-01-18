@@ -45,6 +45,7 @@ const (
 	EncJPEGQualityLevelPseudo3       EncodingType = -30
 	EncJPEGQualityLevelPseudo2       EncodingType = -31
 	EncJPEGQualityLevelPseudo1       EncodingType = -32
+	EncPointerPosPseudo              EncodingType = -232
 	EncCursorPseudo                  EncodingType = -239
 	EncXCursorPseudo                 EncodingType = -240
 	EncDesktopSizePseudo             EncodingType = -223
@@ -80,7 +81,7 @@ var bPool = sync.Pool{
 }
 
 type Renderer interface {
-	SetTargetImage(draw.Image) 
+	SetTargetImage(draw.Image)
 }
 
 // Encoding represents interface for vnc encoding
