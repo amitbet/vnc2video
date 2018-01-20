@@ -2,37 +2,69 @@ package vnc2video
 
 import (
 	"bytes"
-	"encoding/binary"
+	"compress/zlib"
+	"image/draw"
 	"io"
 )
 
 type ZLibEncoding struct {
-	bytes []byte
+	Image      draw.Image
+	unzipper   io.Reader
+	zippedBuff *bytes.Buffer
 }
 
-func (z *ZLibEncoding) Type() int32 {
-	return 6
+func (*ZLibEncoding) Type() EncodingType {
+	return EncZlib
 }
-func (z *ZLibEncoding) WriteTo(w io.Writer) (n int, err error) {
-	return w.Write(z.bytes)
+
+func (enc *ZLibEncoding) WriteTo(w io.Writer) (n int, err error) {
+	return 0, nil
 }
-func (z *ZLibEncoding) Read(r Conn, rect *Rectangle) error {
+
+func (enc *ZLibEncoding) Write(c Conn, rect *Rectangle) error {
+	return nil
+}
+
+func (enc *ZLibEncoding) SetTargetImage(img draw.Image) {
+	enc.Image = img
+}
+
+func (*ZLibEncoding) Supported(Conn) bool {
+	return true
+}
+func (enc *ZLibEncoding) Reset() error {
+	enc.unzipper = nil
+	return nil
+}
+
+func (enc *ZLibEncoding) Read(r Conn, rect *Rectangle) error {
 	//func (z *ZLibEncoding) Read(pixelFmt *PixelFormat, rect *Rectangle, r io.Reader) (Encoding, error) {
 	//conn := RfbReadHelper{Reader:r}
 	//conn := &DataSource{conn: conn.c, PixelFormat: conn.PixelFormat}
-	//bytesPerPixel := c.PixelFormat.BPP / 8
-	bytes := &bytes.Buffer{}
-	len, err := ReadUint32(r)
+	pf := r.PixelFormat()
+	//bytesPerPixel := r.PixelFormat().BPP / 8
+	//bytesBuff := &bytes.Buffer{}
+	zippedLen, err := ReadUint32(r)
 	if err != nil {
 		return err
 	}
 
-	binary.Write(bytes, binary.BigEndian, len)
-	_, err = ReadBytes(int(len), r)
+	b, err := ReadBytes(int(zippedLen), r)
 	if err != nil {
 		return err
 	}
-	//StoreBytes(bytes, bts)
-	z.bytes = bytes.Bytes()
+	bytesBuff := bytes.NewBuffer(b)
+
+	if enc.unzipper == nil {
+		enc.unzipper, err = zlib.NewReader(bytesBuff)
+		enc.zippedBuff = bytesBuff
+		if err != nil {
+			return err
+		}
+	} else {
+		enc.zippedBuff.Write(b)
+	}
+	DecodeRaw(enc.unzipper, &pf, rect, enc.Image)
+
 	return nil
 }

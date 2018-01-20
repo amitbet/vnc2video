@@ -1,9 +1,14 @@
 package vnc2video
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"image"
+	"image/draw"
+)
 
 type CopyRectEncoding struct {
 	SX, SY uint16
+	Image  draw.Image
 }
 
 func (*CopyRectEncoding) Supported(Conn) bool {
@@ -21,6 +26,16 @@ func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {
 	if err := binary.Read(c, binary.BigEndian, &enc.SY); err != nil {
 		return err
 	}
+	cpyIm := image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{int(rect.Width), int(rect.Height)}})
+	for x := 0; x < int(rect.Width); x++ {
+		for y := 0; x < int(rect.Height); y++ {
+			col := enc.Image.At(x+int(enc.SX), y+int(enc.SY))
+			cpyIm.Set(x, y, col)
+		}
+	}
+
+	draw.Draw(enc.Image, enc.Image.Bounds(), cpyIm, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
+
 	return nil
 }
 

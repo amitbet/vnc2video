@@ -55,3 +55,18 @@ func ReadColor(c io.Reader, pf *PixelFormat) (*color.RGBA, error) {
 
 	return &rgb, nil
 }
+
+func DecodeRaw(reader io.Reader, pf *PixelFormat, rect *Rectangle, targetImage draw.Image) error {
+	for y := 0; y < int(rect.Height); y++ {
+		for x := 0; x < int(rect.Width); x++ {
+			col, err := ReadColor(reader, pf)
+			if err != nil {
+				return err
+			}
+
+			targetImage.(draw.Image).Set(int(rect.X)+x, int(rect.Y)+y, col)
+		}
+	}
+
+	return nil
+}

@@ -39,7 +39,8 @@ func main() {
 			&vnc.RawEncoding{},
 			//&vnc.TightEncoding{},
 			&vnc.HextileEncoding{},
-			//&vnc.CursorPseudoEncoding{},
+			&vnc.CursorPseudoEncoding{},
+			&vnc.CursorPosPseudoEncoding{},
 		},
 		ErrorCh: errorCh,
 	}
@@ -76,7 +77,12 @@ func main() {
 	logger.Debugf("connected to: %s", os.Args[1])
 	defer cc.Close()
 
-	cc.SetEncodings([]vnc.EncodingType{vnc.EncHextile})
+	cc.SetEncodings([]vnc.EncodingType{
+		vnc.EncCursorPseudo,
+		vnc.EncPointerPosPseudo,
+		//vnc.EncTight,
+		vnc.EncHextile,
+	})
 	//rect := image.Rect(0, 0, int(cc.Width()), int(cc.Height()))
 	//screenImage := image.NewRGBA64(rect)
 	// Process messages coming in on the ServerMessage channel.
