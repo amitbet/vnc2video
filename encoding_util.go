@@ -70,3 +70,36 @@ func DecodeRaw(reader io.Reader, pf *PixelFormat, rect *Rectangle, targetImage d
 
 	return nil
 }
+
+func ReadUint8(r io.Reader) (uint8, error) {
+	var myUint uint8
+	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
+		return 0, err
+	}
+
+	return myUint, nil
+}
+func ReadUint16(r io.Reader) (uint16, error) {
+	var myUint uint16
+	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
+		return 0, err
+	}
+
+	return myUint, nil
+}
+
+func ReadUint32(r io.Reader) (uint32, error) {
+	var myUint uint32
+	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
+		return 0, err
+	}
+
+	return myUint, nil
+}
+
+func MakeRect(x, y, width, height int) image.Rectangle {
+	return image.Rectangle{Min: image.Point{X: x, Y: y}, Max: image.Point{X: x + width, Y: y + height}}
+}
+func MakeRectFromVncRect(rect *Rectangle) image.Rectangle {
+	return MakeRect(int(rect.X), int(rect.Y), int(rect.Width), int(rect.Height))
+}

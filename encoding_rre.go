@@ -2,6 +2,7 @@ package vnc2video
 
 import (
 	"encoding/binary"
+	"image/draw"
 	"io"
 	//"image/draw"
 )
@@ -11,6 +12,26 @@ type RREEncoding struct {
 	numSubRects     uint32
 	backgroundColor []byte
 	subRectData     []byte
+	Image           draw.Image
+}
+
+func (*RREEncoding) Supported(Conn) bool {
+	return true
+}
+
+func (enc *RREEncoding) SetTargetImage(img draw.Image) {
+	enc.Image = img
+}
+
+func (enc *RREEncoding) Reset() error {
+	return nil
+}
+
+func (*RREEncoding) Type() EncodingType { return EncRRE }
+
+func (enc *RREEncoding) Write(c Conn, rect *Rectangle) error {
+
+	return nil
 }
 
 func (z *RREEncoding) WriteTo(w io.Writer) (n int, err error) {
@@ -33,12 +54,10 @@ func (z *RREEncoding) WriteTo(w io.Writer) (n int, err error) {
 	return b, nil
 }
 
-func (z *RREEncoding) Type() int32 {
-	return 2
-}
-func (z *RREEncoding) Read(r Conn, rect *Rectangle) error {
+func (enc *RREEncoding) Read(r Conn, rect *Rectangle) error {
 	//func (z *RREEncoding) Read(pixelFmt *PixelFormat, rect *Rectangle, r io.Reader) (Encoding, error) {
-	bytesPerPixel := int(r.PixelFormat().BPP / 8)
+	pf := r.PixelFormat()
+	//bytesPerPixel := int(pf.BPP / 8)
 
 	var numOfSubrectangles uint32
 	if err := binary.Read(r, binary.BigEndian, &numOfSubrectangles); err != nil {
@@ -46,18 +65,44 @@ func (z *RREEncoding) Read(r Conn, rect *Rectangle) error {
 	}
 
 	var err error
-	z.numSubRects = numOfSubrectangles
+	enc.numSubRects = numOfSubrectangles
 
 	//read whole-rect background color
-	z.backgroundColor, err = ReadBytes(bytesPerPixel, r)
+	bgColor, err := ReadColor(r, &pf)
 	if err != nil {
 		return err
 	}
+	imgRect := MakeRectFromVncRect(rect)
+	FillRect(enc.Image, &imgRect, bgColor)
 
 	//read all individual rects (color=bytesPerPixel + x=16b + y=16b + w=16b + h=16b)
-	z.subRectData, err = ReadBytes(int(numOfSubrectangles)*(bytesPerPixel+8), r) // x+y+w+h=8 bytes
-	if err != nil {
-		return err
+
+	for i := 0; i < int(numOfSubrectangles); i++ {
+		color, err := ReadColor(r, &pf)
+		if err != nil {
+			return err
+		}
+
+		x, err := ReadUint16(r)
+		if err != nil {
+			return err
+		}
+
+		y, err := ReadUint16(r)
+		if err != nil {
+			return err
+		}
+
+		width, err := ReadUint16(r)
+		if err != nil {
+			return err
+		}
+		height, err := ReadUint16(r)
+		if err != nil {
+			return err
+		}
+		subRect := MakeRect(int(rect.X+x), int(rect.Y+y), int(width), int(height))
+		FillRect(enc.Image, &subRect, color)
 	}
 
 	return nil

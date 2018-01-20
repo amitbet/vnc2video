@@ -529,23 +529,6 @@ func (enc *TightEncoding) readTightPalette(connReader Conn, bytesPixel int) (col
 	return paletteColors, nil
 }
 
-func ReadUint8(r io.Reader) (uint8, error) {
-	var myUint uint8
-	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
-		return 0, err
-	}
-
-	return myUint, nil
-}
-func ReadUint32(r io.Reader) (uint32, error) {
-	var myUint uint32
-	if err := binary.Read(r, binary.BigEndian, &myUint); err != nil {
-		return 0, err
-	}
-
-	return myUint, nil
-}
-
 func (enc *TightEncoding) ReadTightData(dataSize int, c Conn, decoderId int) ([]byte, error) {
 
 	logger.Debugf(">>> Reading zipped tight data from decoder: %d", decoderId)
