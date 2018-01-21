@@ -69,6 +69,7 @@ const (
 	EncClientRedirect                EncodingType = -311
 	EncFencePseudo                   EncodingType = -312
 	EncContinuousUpdatesPseudo       EncodingType = -313
+	EncExtendedClipboardPseudo       EncodingType = -1063131698 //C0A1E5CE
 )
 
 var bPool = sync.Pool{

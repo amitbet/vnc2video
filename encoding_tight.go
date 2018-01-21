@@ -63,7 +63,7 @@ func (enc *TightEncoding) Write(c Conn, rect *Rectangle) error {
 }
 
 // Read unmarshal color from conn
-func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA64, error) {
+func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA, error) {
 	if pf.TrueColor == 0 {
 		return nil, errors.New("support for non true color formats was not implemented")
 	}
@@ -76,11 +76,11 @@ func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA64, error) {
 		if err != nil {
 			return nil, err
 		}
-		rgb := color.RGBA64{
-			R: uint16(tbytes[0]),
-			G: uint16(tbytes[1]),
-			B: uint16(tbytes[2]),
-			A: uint16(1),
+		rgb := color.RGBA{
+			R: uint8(tbytes[0]),
+			G: uint8(tbytes[1]),
+			B: uint8(tbytes[2]),
+			A: uint8(1),
 		}
 		return &rgb, nil
 	}
@@ -106,10 +106,11 @@ func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA64, error) {
 		pixel = uint32(px)
 	}
 
-	rgb := color.RGBA64{
-		R: uint16((pixel >> pf.RedShift) & uint32(pf.RedMax)),
-		G: uint16((pixel >> pf.GreenShift) & uint32(pf.GreenMax)),
-		B: uint16((pixel >> pf.BlueShift) & uint32(pf.BlueMax)),
+	rgb := color.RGBA{
+		R: uint8((pixel >> pf.RedShift) & uint32(pf.RedMax)),
+		G: uint8((pixel >> pf.GreenShift) & uint32(pf.GreenMax)),
+		B: uint8((pixel >> pf.BlueShift) & uint32(pf.BlueMax)),
+		A: 1,
 	}
 
 	return &rgb, nil
@@ -164,13 +165,6 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		enc.Image = image.NewRGBA(image.Rect(0, 0, int(c.Width()), int(c.Height())))
 	}
 
-	//r.StartByteCollection()
-
-	//r.StartByteCollection()
-	// defer func() {
-	// 	t.bytes = r.EndByteCollection()
-	// }()
-
 	compctl, err := ReadUint8(c)
 
 	/////////////////
@@ -200,28 +194,20 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 	//logger.Debugf("afterSHL:%d", compType)
 	switch compType {
 	case TightCompressionFill:
-		logger.Debugf("--TIGHT_FILL: reading fill size=%d,counter=%d", bytesPixel, counter)
+		logger.Infof("--TIGHT_FILL: reading fill size=%d,counter=%d", bytesPixel, counter)
 		//read color
-		pf := c.PixelFormat()
-		rectColor, err := getTightColor(c, &pf)
+
+		rectColor, err := getTightColor(c, &pixelFmt)
 		if err != nil {
 			logger.Errorf("error in reading tight encoding: %v", err)
 			return err
 		}
 
-		c1 := color.RGBAModel.Convert(rectColor).(color.RGBA)
+		//c1 := color.RGBAModel.Convert(rectColor).(color.RGBA)
 		dst := (enc.Image).(*image.RGBA) // enc.Image.(*image.RGBA)
-		var x, y int
-
-		for y = int(rect.Y); y < int(rect.Height+rect.Y); y++ {
-			for x = int(rect.X); x < int(rect.Width+rect.X); x++ {
-				offset := dst.PixOffset(x, y)
-				dst.Pix[offset+0] = c1.R
-				dst.Pix[offset+1] = c1.G
-				dst.Pix[offset+2] = c1.B
-				dst.Pix[offset+3] = c1.A
-			}
-		}
+		myRect := MakeRectFromVncRect(rect)
+		logger.Infof("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
+		FillRect(dst, &myRect, rectColor)
 
 		if bytesPixel != 3 {
 			return fmt.Errorf("non tight bytesPerPixel format, should be 3 bytes")
