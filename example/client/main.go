@@ -5,6 +5,7 @@ import (
 	"image"
 	"net"
 	"os"
+	"runtime"
 	"time"
 	vnc "vnc2video"
 	"vnc2video/encoders"
@@ -12,7 +13,7 @@ import (
 )
 
 func main() {
-
+	runtime.GOMAXPROCS(4)
 	// Establish TCP connection to VNC server.
 	nc, err := net.DialTimeout("tcp", os.Args[1], 5*time.Second)
 	if err != nil {
@@ -37,10 +38,13 @@ func main() {
 		Messages:        vnc.DefaultServerMessages,
 		Encodings: []vnc.Encoding{
 			&vnc.RawEncoding{},
-			//&vnc.TightEncoding{},
+			&vnc.TightEncoding{},
 			&vnc.HextileEncoding{},
+			&vnc.CopyRectEncoding{},
 			&vnc.CursorPseudoEncoding{},
 			&vnc.CursorPosPseudoEncoding{},
+			&vnc.ZLibEncoding{},
+			&vnc.RREEncoding{},
 		},
 		ErrorCh: errorCh,
 	}
@@ -80,12 +84,24 @@ func main() {
 	cc.SetEncodings([]vnc.EncodingType{
 		vnc.EncCursorPseudo,
 		vnc.EncPointerPosPseudo,
-		//vnc.EncTight,
-		vnc.EncHextile,
+		vnc.EncCopyRect,
+		vnc.EncTight,
+		//vnc.EncHextile,
+		//vnc.EncZlib,
+		//vnc.EncRRE,
 	})
 	//rect := image.Rect(0, 0, int(cc.Width()), int(cc.Height()))
 	//screenImage := image.NewRGBA64(rect)
 	// Process messages coming in on the ServerMessage channel.
+
+	// go func() {
+	// 	for {
+	// 		//logger.Infof("encoding screen")
+	// 		vcodec.Encode(screenImage)
+	// 		time.Sleep(100 * time.Millisecond)
+	// 	}
+	// }()
+
 	for {
 		select {
 		case err := <-errorCh:
