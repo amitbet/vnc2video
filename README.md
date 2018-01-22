@@ -29,3 +29,5 @@ It may seem strange that i didn't use my previous vncproxy code in order to crea
 Most of what I added is the rfb-encoder & video encoding implementations, there are naturally some additional changes in order to get a global canvas (draw.Image) to render on by all encodings.
 
 The code for the encodings was gathered by looking at several RFB source codes in cpp & some in java, reading the excellent documentation in [rfbproto](https://github.com/rfbproto/rfbproto/blob/master/rfbproto.rst), and **a lot** of gritty bit-plucking, pixel jogging & code cajoling until everything fell into place on screen.
+
+I did not include tightPng in the supported encoding list since I didn't find a server to test it with, so I can't vouch for the previous implementation, If you have such a server handy, please check and tell me if it works.
