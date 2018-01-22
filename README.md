@@ -7,7 +7,7 @@ After searching the web for an vnc client in golang which is not a toy & support
 * CopyRect
 * Raw
 * RRE
-* ZRLE [TBD - coming soon]
+* ZRLE [**TBD - coming soon**]
 * Rich-cursor pseudo
 * Desktop Size Pseudo
 * Cursor pos Pseudo

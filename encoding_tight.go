@@ -194,7 +194,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 	//logger.Debugf("afterSHL:%d", compType)
 	switch compType {
 	case TightCompressionFill:
-		logger.Infof("--TIGHT_FILL: reading fill size=%d,counter=%d", bytesPixel, counter)
+		logger.Debugf("--TIGHT_FILL: reading fill size=%d,counter=%d", bytesPixel, counter)
 		//read color
 
 		rectColor, err := getTightColor(c, &pixelFmt)
@@ -206,7 +206,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		//c1 := color.RGBAModel.Convert(rectColor).(color.RGBA)
 		dst := (enc.Image).(*image.RGBA) // enc.Image.(*image.RGBA)
 		myRect := MakeRectFromVncRect(rect)
-		logger.Infof("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
+		logger.Debugf("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
 		FillRect(dst, &myRect, rectColor)
 
 		if bytesPixel != 3 {
