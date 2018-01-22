@@ -58,7 +58,7 @@ func (enc *TightPngEncoding) Write(c Conn, rect *Rectangle) error {
 
 type TightPngEncoding struct {
 	TightCC *TightCC
-	Image   image.Image
+	Image   draw.Image
 }
 
 func (*TightPngEncoding) Type() EncodingType { return EncTightPng }
@@ -77,19 +77,27 @@ func (enc *TightPngEncoding) Read(c Conn, rect *Rectangle) error {
 		if err != nil {
 			return err
 		}
-		enc.Image, err = png.Decode(io.LimitReader(c, int64(l)))
+		img, err := png.Decode(io.LimitReader(c, int64(l)))
 		if err != nil {
 			return err
 		}
+		draw.Draw(enc.Image, enc.Image.Bounds(), img, image.Point{X: int(rect.X), Y: int(rect.Y)}, draw.Src)
 	case TightCompressionFill:
 		var tpx TightPixel
 		if err := binary.Read(c, binary.BigEndian, &tpx); err != nil {
 			return err
 		}
-		enc.Image = image.NewRGBA(image.Rect(0, 0, 1, 1))
-		enc.Image.(draw.Image).Set(0, 0, color.RGBA{R: tpx.R, G: tpx.G, B: tpx.B, A: 1})
+		//enc.Image = image.NewRGBA(image.Rect(0, 0, 1, 1))
+		col := color.RGBA{R: tpx.R, G: tpx.G, B: tpx.B, A: 1}
+		myRect := MakeRectFromVncRect(rect)
+		FillRect(enc.Image, &myRect, col)
+		//enc.Image.(draw.Image).Set(0, 0, color.RGBA{R: tpx.R, G: tpx.G, B: tpx.B, A: 1})
 	default:
 		return fmt.Errorf("unknown compression %d", cmp)
 	}
 	return nil
+}
+
+func (enc *TightPngEncoding) SetTargetImage(img draw.Image) {
+	enc.Image = img
 }
