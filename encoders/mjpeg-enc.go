@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/jpeg"
 	"strings"
+	"time"
 	"vnc2video/logger"
 
 	"github.com/icza/mjpeg"
@@ -30,8 +31,10 @@ func (enc *MJPegImageEncoder) Init(videoFileName string) {
 	}
 	enc.avWriter = avWriter
 }
-func (enc *MJPegImageEncoder) Run() {
+func (enc *MJPegImageEncoder) Run(videoFileName string) {
+	enc.Init(videoFileName)
 }
+
 func (enc *MJPegImageEncoder) Encode(img image.Image) {
 	buf := &bytes.Buffer{}
 	jOpts := &jpeg.Options{Quality: enc.Quality}
@@ -42,15 +45,19 @@ func (enc *MJPegImageEncoder) Encode(img image.Image) {
 	if err != nil {
 		logger.Error("Error while creating jpeg: ", err)
 	}
+
+	//logger.Debugf("buff: %v\n", buf.Bytes())
+
 	err = enc.avWriter.AddFrame(buf.Bytes())
 	if err != nil {
 		logger.Error("Error while adding frame to mjpeg: ", err)
 	}
-
 }
+
 func (enc *MJPegImageEncoder) Close() {
 	err := enc.avWriter.Close()
 	if err != nil {
 		logger.Error("Error while closing mjpeg: ", err)
 	}
+	time.Sleep(2 * time.Second)
 }

@@ -1,6 +1,7 @@
 package encoders
 
 import (
+	"errors"
 	"image"
 	"io"
 	"os"
@@ -67,10 +68,10 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *X264ImageEncoder) Run(encoderFilePath string, videoFileName string) {
+func (enc *X264ImageEncoder) Run(encoderFilePath string, videoFileName string) error {
 	if _, err := os.Stat(encoderFilePath); os.IsNotExist(err) {
 		logger.Error("encoder file doesn't exist in path:", encoderFilePath)
-		return
+		return errors.New("encoder file doesn't exist in path" + videoFileName)
 	}
 
 	enc.binaryPath = encoderFilePath
@@ -79,7 +80,9 @@ func (enc *X264ImageEncoder) Run(encoderFilePath string, videoFileName string) {
 	err := enc.cmd.Run()
 	if err != nil {
 		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
+		return err
 	}
+	return nil
 }
 func (enc *X264ImageEncoder) Encode(img image.Image) {
 	err := encodePPM(enc.input, img)
