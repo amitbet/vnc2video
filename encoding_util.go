@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"image/draw"
 	"io"
-	"vnc2video/logger"
 )
 
 func Min(a, b int) int {
@@ -23,28 +22,6 @@ func FillRect(img draw.Image, rect *image.Rectangle, c color.Color) {
 			img.Set(x, y, c)
 		}
 	}
-}
-
-func readRunLength(r io.Reader) (int, error) {
-	runLen := 1
-
-	mod, err := ReadUint8(r)
-	if err != nil {
-		logger.Errorf("renderZRLE: error while reading mod in plain RLE subencoding: %v", err)
-		return 0, err
-	}
-	runLen += int(mod)
-
-	for mod == 255 {
-		//mod = fromZlib.read();
-		mod, err = ReadUint8(r)
-		if err != nil {
-			logger.Errorf("renderZRLE: error while reading mod in-loop plain RLE subencoding: %v", err)
-			return 0, err
-		}
-		runLen += int(mod)
-	}
-	return runLen, nil
 }
 
 // Read unmarshal color from conn

@@ -20,8 +20,13 @@ func (*CopyRectEncoding) Reset() error {
 }
 func (*CopyRectEncoding) Type() EncodingType { return EncCopyRect }
 
+func (enc *CopyRectEncoding) SetTargetImage(img draw.Image) {
+	//logger.Debugf("!!!!!!!!!!!!!setting image: %v", img.Bounds())
+	enc.Image = img
+}
+
 func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {
-	logger.Debugf("Reading: CopyRect%v", rect)
+	logger.Debugf("Reading: CopyRect %v", rect)
 	if err := binary.Read(c, binary.BigEndian, &enc.SX); err != nil {
 		return err
 	}
@@ -30,7 +35,7 @@ func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {
 	}
 	cpyIm := image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{int(rect.Width), int(rect.Height)}})
 	for x := 0; x < int(rect.Width); x++ {
-		for y := 0; x < int(rect.Height); y++ {
+		for y := 0; y < int(rect.Height); y++ {
 			col := enc.Image.At(x+int(enc.SX), y+int(enc.SY))
 			cpyIm.Set(x, y, col)
 		}

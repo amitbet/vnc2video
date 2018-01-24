@@ -298,7 +298,28 @@ func (enc *ZRLEEncoding) handlePlainRLETile(tileOffsetX int, tileOffsetY int, ti
 	return err
 }
 
-// Read unmarshal color from conn
+func readRunLength(r io.Reader) (int, error) {
+	runLen := 1
+
+	addition, err := ReadUint8(r)
+	if err != nil {
+		logger.Errorf("renderZRLE: error while reading addition to runLen in plain RLE subencoding: %v", err)
+		return 0, err
+	}
+	runLen += int(addition)
+
+	for addition == 255 {
+		addition, err = ReadUint8(r)
+		if err != nil {
+			logger.Errorf("renderZRLE: error while reading addition to runLen in-loop plain RLE subencoding: %v", err)
+			return 0, err
+		}
+		runLen += int(addition)
+	}
+	return runLen, nil
+}
+
+// Reads cpixel color from reader
 func readCPixel(c io.Reader, pf *PixelFormat) (*color.RGBA, error) {
 	if pf.TrueColor == 0 {
 		return nil, errors.New("support for non true color formats was not implemented")
@@ -307,7 +328,6 @@ func readCPixel(c io.Reader, pf *PixelFormat) (*color.RGBA, error) {
 	isZRLEFormat := IsCPixelSpecific(pf)
 	var col *color.RGBA
 	if isZRLEFormat {
-		//tbytes := make([]byte, 3)
 		tbytes, err := ReadBytes(3, c)
 		if err != nil {
 			return nil, err
