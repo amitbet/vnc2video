@@ -11,7 +11,6 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"io"
-	"math"
 	"vnc2video/logger"
 )
 
@@ -37,7 +36,7 @@ const (
 )
 
 type TightEncoding struct {
-	Image        image.Image
+	Image        draw.Image
 	decoders     []io.Reader
 	decoderBuffs []*bytes.Buffer
 }
@@ -235,8 +234,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		if err != nil {
 			logger.Error("problem while decoding jpeg:", err)
 		}
-		dest := enc.Image.(draw.Image)
-		draw.Draw(dest, dest.Bounds(), img, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
+		draw.Draw(enc.Image, enc.Image.Bounds(), img, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
 
 		return nil
 	default:
@@ -336,28 +334,44 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 
 	return
 }
+
 func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palette, tightBytes []byte) {
-	myImg := enc.Image.(draw.Image)
 	bytePos := 0
-	bitPos := 0
+	bitPos := uint8(7)
 	var palettePos int
-	for i := 0; i < int(rect.Height); i++ {
-		for j := 0; j < int(rect.Width); j++ {
+	logger.Debugf("drawTightPalette numbytes=%d", len(tightBytes))
+
+	for y := 0; y < int(rect.Height); y++ {
+		for x := 0; x < int(rect.Width); x++ {
 			if len(palette) == 2 {
 				currByte := tightBytes[bytePos]
-				palettePos = int(currByte&byte(math.Pow(2.0, float64(bitPos)))) >> uint(bitPos)
-				//logger.Debugf("palletPos=%d, bitpos=%d, bytepos=%d", palettePos, bitPos, bytePos)
-				bytePos = bytePos + int((bitPos+1.0)/8.0)
-				bitPos = (bitPos + 1) % 8
-				//logger.Debugf("next: bitpos=%d, bytepos=%d", bitPos, bytePos)
+				mask := byte(1) << bitPos
+
+				palettePos = 0
+				if currByte&mask > 0 {
+					palettePos = 1
+				}
+
+				//logger.Debugf("currByte=%d, bitpos=%d, bytepos=%d, palettepos=%d, mask=%d, totalBytes=%d", currByte, bitPos, bytePos, palettePos, mask, len(tightBytes))
+
+				if bitPos == 0 {
+					bytePos++
+				}
+				bitPos = ((bitPos - 1) + 8) % 8
 			} else {
 				palettePos = int(tightBytes[bytePos])
 				bytePos++
 			}
-			myImg.Set(int(rect.X)+j, int(rect.Y)+i, palette[palettePos])
+			//palettePos = palettePos
+			enc.Image.Set(int(rect.X)+x, int(rect.Y)+y, palette[palettePos])
 			//logger.Debugf("(%d,%d): pos: %d col:%d", int(rect.X)+j, int(rect.Y)+i, palettePos, palette[palettePos])
 		}
+		// if bitPos != 0 {
+		// 	bitPos = 7
+		// 	//bytePos++
+		// }
 	}
+
 }
 func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 
@@ -367,7 +381,6 @@ func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 	thisRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
 
 	bIdx := 0
-	dst := (enc.Image).(*image.RGBA) // enc.Image.(*image.RGBA)
 
 	for i := 0; i < int(rect.Height); i++ {
 		for j := 3; j < int(rect.Width*3+3); j += 3 {
@@ -412,7 +425,7 @@ func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 
 		for idx := 3; idx < (len(thisRow) - 3); idx += 3 {
 			myColor := color.RGBA{R: (thisRow[idx]), G: (thisRow[idx+1]), B: (thisRow[idx+2]), A: 1}
-			dst.SetRGBA(idx/3+int(rect.X)-1, int(rect.Y)+i, myColor)
+			enc.Image.Set(idx/3+int(rect.X)-1, int(rect.Y)+i, myColor)
 			//logger.Debugf("putting pixel: idx=%d, pos=(%d,%d), col=%v", idx, idx/3+int(rect.X), int(rect.Y)+i, myColor)
 
 		}
@@ -647,14 +660,13 @@ func readTightLength(c Conn) (int, error) {
  */
 func (enc *TightEncoding) drawTightBytes(bytes []byte, rect *Rectangle) {
 	bytesPos := 0
-	myImg := (enc.Image).(draw.Image)
 	logger.Debugf("drawTightBytes: len(bytes)= %d, %v", len(bytes), rect)
 
 	for ly := rect.Y; ly < rect.Y+rect.Height; ly++ {
 		for lx := rect.X; lx < rect.X+rect.Width; lx++ {
 			color := color.RGBA{R: bytes[bytesPos], G: bytes[bytesPos+1], B: bytes[bytesPos+2], A: 1}
 			//logger.Debugf("drawTightBytes: setting pixel= (%d,%d): %v", int(lx), int(ly), color)
-			myImg.Set(int(lx), int(ly), color)
+			enc.Image.Set(int(lx), int(ly), color)
 
 			bytesPos += 3
 		}
