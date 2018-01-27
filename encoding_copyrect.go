@@ -41,7 +41,12 @@ func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {
 		}
 	}
 
-	draw.Draw(enc.Image, enc.Image.Bounds(), cpyIm, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
+	for x := 0; x < int(rect.Width); x++ {
+		for y := 0; y < int(rect.Height); y++ {
+			col := cpyIm.At(x, y)
+			enc.Image.Set(int(rect.X)+x, int(rect.Y)+y, col)
+		}
+	}
 
 	return nil
 }

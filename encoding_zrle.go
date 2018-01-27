@@ -261,7 +261,7 @@ func (enc *ZRLEEncoding) handlePaletteTile(tileOffsetX, tileOffsetY, tileWidth, 
 			bitsAvailable -= indexBits
 
 			// Write pixel to image
-			enc.Image.Set(tileOffsetX+int(rect.X), tileOffsetY+int(rect.Y), palette[index])
+			enc.Image.Set(tileOffsetX+int(rect.X)+x, tileOffsetY+int(rect.Y)+y, palette[index])
 		}
 	}
 	return err
