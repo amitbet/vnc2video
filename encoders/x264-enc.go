@@ -26,7 +26,8 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "4",
+		"-r", "5",
+		//"-re",
 		//"-i", "pipe:0",
 		"-i", "-",
 		"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
@@ -37,11 +38,11 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		// "-tile-columns", "6",
 		//"-frame-parallel", "1",
 		// "-an", "-f", "webm",
-		"-cpu-used", "-16",
-
+		//"-cpu-used", "-16",
+		"-cpu-used", "-5",
 		"-preset", "ultrafast",
 		"-deadline", "realtime",
-		//"-cpu-used", "-5",
+
 		"-maxrate", "2.5M",
 		"-bufsize", "10M",
 		"-g", "6",

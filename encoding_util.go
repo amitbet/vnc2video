@@ -9,6 +9,89 @@ import (
 	"io"
 )
 
+type VncCanvas struct {
+	draw.Image
+	Cursor         draw.Image
+	CursorMask     draw.Image
+	CursorBackup   draw.Image
+	CursorOffset   *image.Point
+	CursorLocation *image.Point
+	DrawCursor     bool
+}
+
+func NewVncCanvas(width, height int) *VncCanvas {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	canvas := VncCanvas{
+		Image: img,
+	}
+	return &canvas
+}
+func (c *VncCanvas) RemoveCursor() image.Image {
+	if c.Cursor == nil || c.CursorLocation == nil {
+		return c.Image
+	}
+	if !c.DrawCursor {
+		return c.Image
+	}
+	rect := c.Cursor.Bounds()
+	loc := c.CursorLocation
+	img := c.Image
+	for y := rect.Min.Y; y < int(rect.Max.Y); y++ {
+		for x := rect.Min.X; x < int(rect.Max.X); x++ {
+			// offset := y*int(rect.Width) + x
+			// if bitmask[y*int(scanLine)+x/8]&(1<<uint(7-x%8)) > 0 {
+			col := c.CursorBackup.At(x, y)
+			mask := c.CursorMask.At(x, y).(color.RGBA)
+
+			//logger.Info("Drawing Cursor: ", x, y, col, mask)
+			if mask.R == 1 {
+				//logger.Info("Drawing Cursor for real: ", x, y, col)
+				img.Set(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y, col)
+			}
+			// 	//logger.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+			// }
+		}
+	}
+	return img
+}
+
+func (c *VncCanvas) PaintCursor() image.Image {
+	if c.Cursor == nil || c.CursorLocation == nil {
+		return c.Image
+	}
+	if !c.DrawCursor {
+		return c.Image
+	}
+	rect := c.Cursor.Bounds()
+	if c.CursorBackup == nil {
+		c.CursorBackup = image.NewRGBA(c.Cursor.Bounds())
+	}
+
+	loc := c.CursorLocation
+	img := c.Image
+	for y := rect.Min.Y; y < int(rect.Max.Y); y++ {
+		for x := rect.Min.X; x < int(rect.Max.X); x++ {
+			// offset := y*int(rect.Width) + x
+			// if bitmask[y*int(scanLine)+x/8]&(1<<uint(7-x%8)) > 0 {
+			col := c.Cursor.At(x, y)
+			mask := c.CursorMask.At(x, y).(color.RGBA)
+
+			//backup the previous data at this point
+
+			//logger.Info("Drawing Cursor: ", x, y, col, mask)
+			if mask.R == 1 {
+				backup := c.Image.At(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y)
+				c.CursorBackup.Set(x, y, backup)
+				//logger.Info("Drawing Cursor for real: ", x, y, col)
+				img.Set(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y, col)
+			}
+			// 	//logger.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+			// }
+		}
+	}
+	return img
+}
+
 func Min(a, b int) int {
 	if a < b {
 		return a

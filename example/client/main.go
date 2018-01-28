@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"image"
 	"net"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 	vnc "vnc2video"
 	"vnc2video/encoders"
@@ -32,6 +33,7 @@ func main() {
 			&vnc.ClientAuthVNC{Password: []byte("12345")},
 			&vnc.ClientAuthNone{},
 		},
+		DrawCursor:      true,
 		PixelFormat:     vnc.PixelFormat32bit,
 		ClientMessageCh: cchClient,
 		ServerMessageCh: cchServer,
@@ -40,6 +42,7 @@ func main() {
 			&vnc.RawEncoding{},
 			&vnc.TightEncoding{},
 			&vnc.HextileEncoding{},
+			&vnc.ZRLEEncoding{},
 			&vnc.CopyRectEncoding{},
 			&vnc.CursorPseudoEncoding{},
 			&vnc.CursorPosPseudoEncoding{},
@@ -50,6 +53,7 @@ func main() {
 	}
 
 	cc, err := vnc.Connect(context.Background(), nc, ccfg)
+	screenImage := cc.Canvas
 	if err != nil {
 		logger.Fatalf("Error negotiating connection to VNC host. %v", err)
 	}
@@ -58,17 +62,21 @@ func main() {
 	// 	fmt.Println(err)
 	// 	os.Exit(1)
 	// }
-	//vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 6}
+	//vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 4}
 	vcodec := &encoders.X264ImageEncoder{}
 	//vcodec := &encoders.DV8ImageEncoder{}
 	//vcodec := &encoders.DV9ImageEncoder{}
 
 	//counter := 0
 	//vcodec.Init("./output" + strconv.Itoa(counter))
-	//go vcodec.Run("./ffmpeg", "./output.mp4")
-	go vcodec.Run("/Users/amitbet/Dropbox/go/src/vnc2webm/example/file-reader/ffmpeg", "./output.mp4")
+	go vcodec.Run("./ffmpeg", "./output.mp4")
 
-	screenImage := image.NewRGBA(image.Rect(0, 0, int(cc.Width()), int(cc.Height())))
+	//go vcodec.Run("/Users/amitbet/Dropbox/go/src/vnc2webm/example/file-reader/ffmpeg", "./output.mp4")
+	//go vcodec.Run("C:\\Users\\betzalel\\Dropbox\\go\\src\\vnc2video\\example\\client\\ffmpeg.exe", "./output.mp4")
+	//vcodec.Run("./output")
+
+	//screenImage := vnc.NewVncCanvas(int(cc.Width()), int(cc.Height()))
+
 	for _, enc := range ccfg.Encodings {
 		myRenderer, ok := enc.(vnc.Renderer)
 
@@ -86,9 +94,10 @@ func main() {
 		vnc.EncPointerPosPseudo,
 		vnc.EncCopyRect,
 		vnc.EncTight,
-		//vnc.EncHextile,
-		//vnc.EncZlib,
-		//vnc.EncRRE,
+		vnc.EncZRLE,
+		vnc.EncHextile,
+		vnc.EncZlib,
+		vnc.EncRRE,
 	})
 	//rect := image.Rect(0, 0, int(cc.Width()), int(cc.Height()))
 	//screenImage := image.NewRGBA64(rect)
@@ -101,6 +110,12 @@ func main() {
 	// 		time.Sleep(100 * time.Millisecond)
 	// 	}
 	// }()
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
 	for {
 		select {
@@ -109,7 +124,7 @@ func main() {
 		case msg := <-cchClient:
 			logger.Debugf("Received client message type:%v msg:%v\n", msg.Type(), msg)
 		case msg := <-cchServer:
-			logger.Debugf("Received server message type:%v msg:%v\n", msg.Type(), msg)
+			//logger.Debugf("Received server message type:%v msg:%v\n", msg.Type(), msg)
 
 			// out, err := os.Create("./output" + strconv.Itoa(counter) + ".jpg")
 			// if err != nil {
@@ -123,6 +138,12 @@ func main() {
 				reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}
 				//cc.ResetAllEncodings()
 				reqMsg.Write(cc)
+			}
+		case signal := <-sigc:
+			if signal != nil {
+				vcodec.Close()
+				time.Sleep(2 * time.Second)
+				os.Exit(1)
 			}
 		}
 	}

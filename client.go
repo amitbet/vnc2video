@@ -42,6 +42,9 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 		}
 	}
 
+	canvas := NewVncCanvas(int(conn.Width()), int(conn.Height()))
+	canvas.DrawCursor = cfg.DrawCursor
+	conn.Canvas = canvas
 	return conn, nil
 }
 
@@ -198,7 +201,7 @@ type ClientConn struct {
 	// the data comes from the server.
 	// Definition in §5 - Representation of Pixel Data.
 	colorMap ColorMap
-
+	Canvas   *VncCanvas
 	// Name associated with the desktop, sent from the server.
 	desktopName []byte
 
@@ -295,9 +298,11 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 					cfg.ErrorCh <- err
 					return
 				}
-
+				canvas := c.(*ClientConn).Canvas
+				canvas.RemoveCursor()
 				parsedMsg, err := msg.Read(c)
-				logger.Debugf("============== End Message: type=%d ==============", messageType)
+				canvas.PaintCursor()
+				logger.Infof("============== End Message: type=%d ==============", messageType)
 
 				if err != nil {
 					cfg.ErrorCh <- err
@@ -340,6 +345,7 @@ type ClientConfig struct {
 	ClientMessageCh  chan ClientMessage
 	ServerMessageCh  chan ServerMessage
 	Exclusive        bool
+	DrawCursor       bool
 	Messages         []ServerMessage
 	QuitCh           chan struct{}
 	ErrorCh          chan error

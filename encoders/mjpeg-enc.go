@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/jpeg"
 	"strings"
-	"time"
 	"vnc2video/logger"
 
 	"github.com/icza/mjpeg"
@@ -59,5 +58,4 @@ func (enc *MJPegImageEncoder) Close() {
 	if err != nil {
 		logger.Error("Error while closing mjpeg: ", err)
 	}
-	time.Sleep(2 * time.Second)
 }

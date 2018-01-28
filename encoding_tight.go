@@ -63,6 +63,7 @@ func (enc *TightEncoding) Write(c Conn, rect *Rectangle) error {
 
 // Read unmarshal color from conn
 func getTightColor(c io.Reader, pf *PixelFormat) (*color.RGBA, error) {
+
 	if pf.TrueColor == 0 {
 		return nil, errors.New("support for non true color formats was not implemented")
 	}
@@ -203,7 +204,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		}
 
 		//c1 := color.RGBAModel.Convert(rectColor).(color.RGBA)
-		dst := (enc.Image).(*image.RGBA) // enc.Image.(*image.RGBA)
+		dst := (enc.Image).(draw.Image) // enc.Image.(*image.RGBA)
 		myRect := MakeRectFromVncRect(rect)
 		logger.Debugf("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
 		FillRect(dst, &myRect, rectColor)
@@ -368,7 +369,7 @@ func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palett
 		}
 		// if bitPos != 0 {
 		// 	bitPos = 7
-		// 	//bytePos++
+		//  bytePos++
 		// }
 	}
 

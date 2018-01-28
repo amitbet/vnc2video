@@ -29,6 +29,8 @@ func (*CursorPosPseudoEncoding) Type() EncodingType { return EncPointerPosPseudo
 
 func (enc *CursorPosPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 	logger.Debugf("CursorPosPseudoEncoding: got cursot pos update: %v", rect)
+	canvas := enc.Image.(*VncCanvas)
+	canvas.CursorLocation = &image.Point{X: int(rect.X), Y: int(rect.Y)}
 	return nil
 }
 
