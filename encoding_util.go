@@ -12,7 +12,7 @@ import (
 type VncCanvas struct {
 	draw.Image
 	Cursor         draw.Image
-	CursorMask     draw.Image
+	CursorMask     [][]bool
 	CursorBackup   draw.Image
 	CursorOffset   *image.Point
 	CursorLocation *image.Point
@@ -20,7 +20,7 @@ type VncCanvas struct {
 }
 
 func NewVncCanvas(width, height int) *VncCanvas {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	img := NewRGBImage(image.Rect(0, 0, width, height))
 	canvas := VncCanvas{
 		Image: img,
 	}
@@ -41,14 +41,14 @@ func (c *VncCanvas) RemoveCursor() image.Image {
 			// offset := y*int(rect.Width) + x
 			// if bitmask[y*int(scanLine)+x/8]&(1<<uint(7-x%8)) > 0 {
 			col := c.CursorBackup.At(x, y)
-			mask := c.CursorMask.At(x, y).(color.RGBA)
-
+			//mask := c.CursorMask.At(x, y).(color.RGBA)
+			mask := c.CursorMask[x][y]
 			//logger.Info("Drawing Cursor: ", x, y, col, mask)
-			if mask.R == 1 {
+			if mask {
 				//logger.Info("Drawing Cursor for real: ", x, y, col)
 				img.Set(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y, col)
 			}
-			// 	//logger.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+			// 	//logger.Tracef("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
 			// }
 		}
 	}
@@ -74,18 +74,20 @@ func (c *VncCanvas) PaintCursor() image.Image {
 			// offset := y*int(rect.Width) + x
 			// if bitmask[y*int(scanLine)+x/8]&(1<<uint(7-x%8)) > 0 {
 			col := c.Cursor.At(x, y)
-			mask := c.CursorMask.At(x, y).(color.RGBA)
-
+			//mask := c.CursorMask.At(x, y).(RGBColor)
+			mask := c.CursorMask[x][y]
+			backup := c.Image.At(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y)
+			//c.CursorBackup.Set(x, y, backup)
 			//backup the previous data at this point
 
 			//logger.Info("Drawing Cursor: ", x, y, col, mask)
-			if mask.R == 1 {
-				backup := c.Image.At(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y)
+			if mask {
+
 				c.CursorBackup.Set(x, y, backup)
 				//logger.Info("Drawing Cursor for real: ", x, y, col)
 				img.Set(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y, col)
 			}
-			// 	//logger.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+			// 	//logger.Tracef("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
 			// }
 		}
 	}

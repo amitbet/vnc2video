@@ -115,9 +115,11 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 	if err := binary.Read(c, binary.BigEndian, &msg.NumRect); err != nil {
 		return nil, err
 	}
+	logger.Debugf("-------Reading FrameBuffer update with %d rects-------", msg.NumRect)
+
 	for i := uint16(0); i < msg.NumRect; i++ {
 		rect := NewRectangle()
-		//logger.Debugf("----------RECT %d----------:", i)
+		logger.DebugfNoCR("----------RECT %d----------", i)
 
 		if err := rect.Read(c); err != nil {
 			return nil, err
@@ -125,7 +127,7 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 		if rect.EncType == EncDesktopSizePseudo {
 			c.(*ClientConn).ResetAllEncodings()
 		}
-		logger.Debugf("----End RECT #%d Info (%dx%d) encType:%s", i, rect.Width, rect.Height, rect.EncType)
+		logger.Tracef("----End RECT #%d Info (%dx%d) encType:%s", i, rect.Width, rect.Height, rect.EncType)
 		msg.Rects = append(msg.Rects, rect)
 	}
 	return &msg, nil
@@ -269,6 +271,7 @@ func (*SetColorMapEntries) Type() ServerMessageType {
 
 // Read unmrashal message from conn
 func (*SetColorMapEntries) Read(c Conn) (ServerMessage, error) {
+	logger.Info("Reading SetColorMapEntries message")
 	msg := SetColorMapEntries{}
 	var pad [1]byte
 	if err := binary.Read(c, binary.BigEndian, &pad); err != nil {
@@ -288,7 +291,9 @@ func (*SetColorMapEntries) Read(c Conn) (ServerMessage, error) {
 
 	for i := uint16(0); i < msg.ColorsNum; i++ {
 		color := &msg.Colors[i]
-		if err := binary.Read(c, binary.BigEndian, &color); err != nil {
+		err := color.Read(c)
+		if err != nil {
+			//if err := binary.Read(c, binary.BigEndian, &color); err != nil {
 			return nil, err
 		}
 		colorMap[msg.FirstColor+i] = *color

@@ -256,7 +256,7 @@ type DefaultClientMessageHandler struct{}
 
 // Handle handles server messages.
 func (*DefaultClientMessageHandler) Handle(c Conn) error {
-	logger.Debug("starting DefaultClientMessageHandler")
+	logger.Trace("starting DefaultClientMessageHandler")
 	cfg := c.Config().(*ClientConfig)
 	var err error
 	var wg sync.WaitGroup
@@ -291,7 +291,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 					cfg.ErrorCh <- err
 					return
 				}
-				logger.Debugf("got server message, msgType=%d", messageType)
+				logger.Infof("========got server message, msgType=%d", messageType)
 				msg, ok := serverMessages[messageType]
 				if !ok {
 					err = fmt.Errorf("unknown message-type: %v", messageType)
@@ -302,7 +302,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 				canvas.RemoveCursor()
 				parsedMsg, err := msg.Read(c)
 				canvas.PaintCursor()
-				logger.Infof("============== End Message: type=%d ==============", messageType)
+				logger.Debugf("============== End Message: type=%d ==============", messageType)
 
 				if err != nil {
 					cfg.ErrorCh <- err
@@ -323,11 +323,11 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 	for _, value := range encTypes {
 		v = append(v, value)
 	}
-	logger.Debugf("setting encodings: %v", v)
+	logger.Tracef("setting encodings: %v", v)
 	c.SetEncodings(v)
 
 	firstMsg := FramebufferUpdateRequest{Inc: 0, X: 0, Y: 0, Width: c.Width(), Height: c.Height()}
-	logger.Debugf("sending initial req message: %v", firstMsg)
+	logger.Tracef("sending initial req message: %v", firstMsg)
 	firstMsg.Write(c)
 
 	//wg.Wait()

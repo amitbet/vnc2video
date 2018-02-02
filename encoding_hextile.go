@@ -62,7 +62,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 	// defer func() {
 	// 	z.bytes = r.EndByteCollection()
 	// }()
-	logger.Debugf("HextileEncoding.Read: got hextile rect: %v", rect)
+	logger.Tracef("HextileEncoding.Read: got hextile rect: %v", rect)
 	for ty := rect.Y; ty < rect.Y+rect.Height; ty += 16 {
 		th := 16
 		if rect.Y+rect.Height-ty < 16 {
@@ -98,10 +98,10 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 					return err
 				}
 
-				//logger.Debugf("%v %v", rBounds, bgCol)
+				//logger.Tracef("%v %v", rBounds, bgCol)
 			}
 			rBounds := image.Rectangle{Min: image.Point{int(tx), int(ty)}, Max: image.Point{int(tx) + int(tw), int(ty) + int(th)}}
-			//logger.Debugf("filling background rect: %v, col: %v", rBounds, bgCol)
+			//logger.Tracef("filling background rect: %v, col: %v", rBounds, bgCol)
 			FillRect(z.Image, &rBounds, bgCol)
 
 			if (subencoding & HextileForegroundSpecified) != 0 {
@@ -112,7 +112,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 				}
 			}
 			if (subencoding & HextileAnySubrects) == 0 {
-				//logger.Debug("hextile reader: no Subrects")
+				//logger.Trace("hextile reader: no Subrects")
 				continue
 			}
 
@@ -151,7 +151,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 				subtileHeight := 1 + (dimensions & 0x0f)
 				subrectBounds := image.Rectangle{Min: image.Point{int(tx) + int(subtileX), int(ty) + int(subtileY)}, Max: image.Point{int(tx) + int(subtileX) + int(subtileWidth), int(ty) + int(subtileY) + int(subtileHeight)}}
 				FillRect(z.Image, &subrectBounds, color)
-				//logger.Debugf("%v", subrectBounds)
+				//logger.Tracef("%v", subrectBounds)
 			}
 		}
 	}

@@ -9,13 +9,13 @@ import (
 	"vnc2video/logger"
 )
 
-type DV8ImageEncoder struct {
+type VP8ImageEncoder struct {
 	cmd        *exec.Cmd
 	binaryPath string
 	input      io.WriteCloser
 }
 
-func (enc *DV8ImageEncoder) Init(videoFileName string) {
+func (enc *VP8ImageEncoder) Init(videoFileName string) {
 	fileExt := ".webm"
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
@@ -25,30 +25,37 @@ func (enc *DV8ImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
+		"-vsync", "2",
 		"-r", "5",
+		"-probesize", "10000000",
 		//"-i", "pipe:0",
 		"-i", "-",
+
+		//"-crf", "4",
 		"-vcodec", "libvpx", //"libvpx",//"libvpx-vp9"//"libx264"
-		"-b:v", "1M",
+		"-b:v", "0.5M",
+		//"-maxrate", "1.5M",
+
 		"-threads", "8",
 		//"-speed", "0",
 		//"-lossless", "1", //for vpx
 		// "-tile-columns", "6",
 		//"-frame-parallel", "1",
 		// "-an", "-f", "webm",
+
+		//"-preset", "ultrafast",
+		//"-deadline", "realtime",
+		"-quality", "good",
 		"-cpu-used", "-16",
-
-		"-preset", "ultrafast",
-		"-deadline", "realtime",
-		//"-cpu-used", "-5",
-		"-maxrate", "2.5M",
-		"-bufsize", "10M",
-		"-g", "6",
-
-		//"-rc_lookahead", "16",
+		"-minrate", "0.2M",
+		"-maxrate", "0.7M",
+		"-bufsize", "50M",
+		"-g", "180",
+		"-keyint_min", "180",
+		"-rc_lookahead", "20",
 		//"-profile", "0",
 		"-qmax", "51",
-		"-qmin", "11",
+		"-qmin", "3",
 		//"-slices", "4",
 		//"-vb", "2M",
 
@@ -67,25 +74,26 @@ func (enc *DV8ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *DV8ImageEncoder) Run(encoderFilePath string, videoFileName string) {
+func (enc *VP8ImageEncoder) Run(encoderFilePath string, videoFileName string) {
 	if _, err := os.Stat(encoderFilePath); os.IsNotExist(err) {
 		logger.Error("encoder file doesn't exist in path:", encoderFilePath)
 		return
 	}
 	enc.binaryPath = encoderFilePath
 	enc.Init(videoFileName)
-	logger.Infof("launching binary: %v", enc.cmd)
+	logger.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
 	if err != nil {
 		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
 	}
 }
-func (enc *DV8ImageEncoder) Encode(img image.Image) {
+func (enc *VP8ImageEncoder) Encode(img image.Image) {
 	err := encodePPM(enc.input, img)
 	if err != nil {
 		logger.Error("error while encoding image:", err)
 	}
 }
-func (enc *DV8ImageEncoder) Close() {
+
+func (enc *VP8ImageEncoder) Close() {
 
 }

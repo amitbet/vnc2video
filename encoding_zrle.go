@@ -57,7 +57,7 @@ func CalcBytesPerCPixel(pf *PixelFormat) int {
 }
 
 func (enc *ZRLEEncoding) Read(r Conn, rect *Rectangle) error {
-	logger.Debugf("reading ZRLE:%v\n", rect)
+	logger.Tracef("reading ZRLE:%v\n", rect)
 	len, err := ReadUint32(r)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (enc *ZRLEEncoding) readZRLERaw(reader io.Reader, pf *PixelFormat, tx, ty, 
 }
 
 func (enc *ZRLEEncoding) renderZRLE(rect *Rectangle, pf *PixelFormat) error {
-	logger.Debug("-----renderZRLE: rendering rect:", rect)
+	logger.Trace("-----renderZRLE: rendering rect:", rect)
 	for tileOffsetY := 0; tileOffsetY < int(rect.Height); tileOffsetY += 64 {
 
 		tileHeight := Min(64, int(rect.Height)-tileOffsetY)
@@ -111,7 +111,7 @@ func (enc *ZRLEEncoding) renderZRLE(rect *Rectangle, pf *PixelFormat) error {
 			tileWidth := Min(64, int(rect.Width)-tileOffsetX)
 			// read subencoding
 			subEnc, err := ReadUint8(enc.unzipper)
-			logger.Debugf("-----renderZRLE: rendering got tile:(%d,%d) w:%d, h:%d subEnc:%d", tileOffsetX, tileOffsetY, tileWidth, tileHeight, subEnc)
+			logger.Tracef("-----renderZRLE: rendering got tile:(%d,%d) w:%d, h:%d subEnc:%d", tileOffsetX, tileOffsetY, tileWidth, tileHeight, subEnc)
 			if err != nil {
 				logger.Errorf("renderZRLE: error while reading subencoding: %v", err)
 				return err
@@ -200,7 +200,7 @@ func (enc *ZRLEEncoding) handlePaletteRLETile(tileOffsetX, tileOffsetY, tileWidt
 					}
 
 				}
-				//logger.Debugf("renderZRLE: writing pixel: col=%v times=%d", palette[index], runLen)
+				//logger.Tracef("renderZRLE: writing pixel: col=%v times=%d", palette[index], runLen)
 			}
 
 			// Write pixel to image

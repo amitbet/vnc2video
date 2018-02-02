@@ -135,10 +135,10 @@ func (enc *TightEncoding) Reset() error {
 }
 
 func (enc *TightEncoding) resetDecoders(compControl uint8) {
-	logger.Debugf("###resetDecoders compctl :%d", 0x0F&compControl)
+	logger.Tracef("###resetDecoders compctl :%d", 0x0F&compControl)
 	for i := 0; i < 4; i++ {
 		if (compControl&1) != 0 && enc.decoders[i] != nil {
-			logger.Debugf("###resetDecoders - resetting decoder #%d", i)
+			logger.Tracef("###resetDecoders - resetting decoder #%d", i)
 			enc.decoders[i] = nil //.(zlib.Resetter).Reset(nil,nil);
 		}
 		compControl >>= 1
@@ -146,7 +146,7 @@ func (enc *TightEncoding) resetDecoders(compControl uint8) {
 }
 
 func (enc *TightEncoding) SetTargetImage(img draw.Image) {
-	enc.Image = img
+	enc.Image = img.(*VncCanvas).Image
 }
 
 var counter int = 0
@@ -179,22 +179,22 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 	// defer func() { counter++ }()
 	// defer jpeg.Encode(out, enc.Image, nil)
 	//////////////
-	logger.Debugf("-----------READ-Tight-encoding compctl=%d -------------", compctl)
+	logger.Tracef("-----------READ-Tight-encoding compctl=%d -------------", compctl)
 
 	if err != nil {
 		logger.Errorf("error in handling tight encoding: %v", err)
 		return err
 	}
-	//logger.Debugf("bytesPixel= %d, subencoding= %d", bytesPixel, compctl)
+	//logger.Tracef("bytesPixel= %d, subencoding= %d", bytesPixel, compctl)
 	enc.resetDecoders(compctl)
 
 	//move it to position (remove zlib flush commands)
 	compType := compctl >> 4 & 0x0F
 
-	//logger.Debugf("afterSHL:%d", compType)
+	//logger.Tracef("afterSHL:%d", compType)
 	switch compType {
 	case TightCompressionFill:
-		logger.Debugf("--TIGHT_FILL: reading fill size=%d,counter=%d", bytesPixel, counter)
+		logger.Tracef("--TIGHT_FILL: reading fill size=%d,counter=%d", bytesPixel, counter)
 		//read color
 
 		rectColor, err := getTightColor(c, &pixelFmt)
@@ -206,7 +206,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		//c1 := color.RGBAModel.Convert(rectColor).(color.RGBA)
 		dst := (enc.Image).(draw.Image) // enc.Image.(*image.RGBA)
 		myRect := MakeRectFromVncRect(rect)
-		logger.Debugf("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
+		logger.Tracef("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
 		FillRect(dst, &myRect, rectColor)
 
 		if bytesPixel != 3 {
@@ -214,7 +214,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		}
 		return nil
 	case TightCompressionJPEG:
-		logger.Debugf("--TIGHT_JPEG,counter=%d", counter)
+		logger.Tracef("--TIGHT_JPEG,counter=%d", counter)
 		if pixelFmt.BPP == 8 {
 			return errors.New("Tight encoding: JPEG is not supported in 8 bpp mode")
 		}
@@ -224,7 +224,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		if err != nil {
 			return err
 		}
-		//logger.Debugf("reading jpeg, size=%d\n", len)
+		//logger.Tracef("reading jpeg, size=%d\n", len)
 		jpegBytes, err := ReadBytes(len, c)
 		if err != nil {
 			return err
@@ -271,12 +271,12 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 			logger.Errorf("error in handling tight encoding, reading filterid: %v", err)
 			return
 		}
-		//logger.Debugf("handleTightFilters: read filter: %d", filterid)
+		//logger.Tracef("handleTightFilters: read filter: %d", filterid)
 	}
 
 	bytesPixel := calcTightBytePerPixel(pixelFmt)
 
-	//logger.Debugf("handleTightFilters: filter: %d", filterid)
+	//logger.Tracef("handleTightFilters: filter: %d", filterid)
 
 	lengthCurrentbpp := int(bytesPixel) * int(rect.Width) * int(rect.Height)
 
@@ -288,9 +288,9 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 			logger.Errorf("handleTightFilters: error in Reading Palette: %v", err)
 			return
 		}
-		logger.Infof("----PALETTE_FILTER,palette len=%d counter=%d, rect= %v", len(palette), counter, rect)
+		logger.Debugf("----PALETTE_FILTER,palette len=%d counter=%d, rect= %v", len(palette), counter, rect)
 
-		//logger.Debugf("got palette: %v", palette)
+		//logger.Tracef("got palette: %v", palette)
 		var dataLength int
 		if len(palette) == 2 {
 			dataLength = int(rect.Height) * ((int(rect.Width) + 7) / 8)
@@ -298,7 +298,7 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 			dataLength = int(rect.Width * rect.Height)
 		}
 		tightBytes, err := enc.ReadTightData(dataLength, r, int(decoderId))
-		//logger.Debugf("got tightBytes: %v", tightBytes)
+		//logger.Tracef("got tightBytes: %v", tightBytes)
 		if err != nil {
 			logger.Errorf("handleTightFilters: error in handling tight encoding, reading palette filter data: %v", err)
 			return
@@ -308,8 +308,8 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 		enc.drawTightPalette(rect, palette, tightBytes)
 		//enc.Image = myImg
 	case TightFilterGradient: //GRADIENT_FILTER
-		logger.Infof("----GRADIENT_FILTER: bytesPixel=%d, counter=%d", bytesPixel, counter)
-		//logger.Debugf("usegrad: %d\n", filterid)
+		logger.Debugf("----GRADIENT_FILTER: bytesPixel=%d, counter=%d", bytesPixel, counter)
+		//logger.Tracef("usegrad: %d\n", filterid)
 		data, err := enc.ReadTightData(lengthCurrentbpp, r, int(decoderId))
 		if err != nil {
 			logger.Errorf("handleTightFilters: error in handling tight encoding, Reading GRADIENT_FILTER: %v", err)
@@ -319,14 +319,14 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 
 	case TightFilterCopy: //BASIC_FILTER
 		//lengthCurrentbpp1 := int(pixelFmt.BPP/8) * int(rect.Width) * int(rect.Height)
-		logger.Infof("----BASIC_FILTER: bytesPixel=%d, counter=%d", bytesPixel, counter)
+		logger.Debugf("----BASIC_FILTER: bytesPixel=%d, counter=%d", bytesPixel, counter)
 
 		tightBytes, err := enc.ReadTightData(lengthCurrentbpp, r, int(decoderId))
 		if err != nil {
 			logger.Errorf("handleTightFilters: error in handling tight encoding, Reading BASIC_FILTER: %v", err)
 			return
 		}
-		logger.Debugf("tightBytes len= %d", len(tightBytes))
+		logger.Tracef("tightBytes len= %d", len(tightBytes))
 		enc.drawTightBytes(tightBytes, rect)
 	default:
 		logger.Errorf("handleTightFilters: Bad tight filter id: %d", filterid)
@@ -340,7 +340,7 @@ func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palett
 	bytePos := 0
 	bitPos := uint8(7)
 	var palettePos int
-	logger.Debugf("drawTightPalette numbytes=%d", len(tightBytes))
+	logger.Tracef("drawTightPalette numbytes=%d", len(tightBytes))
 
 	for y := 0; y < int(rect.Height); y++ {
 		for x := 0; x < int(rect.Width); x++ {
@@ -353,7 +353,7 @@ func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palett
 					palettePos = 1
 				}
 
-				//logger.Debugf("currByte=%d, bitpos=%d, bytepos=%d, palettepos=%d, mask=%d, totalBytes=%d", currByte, bitPos, bytePos, palettePos, mask, len(tightBytes))
+				//logger.Tracef("currByte=%d, bitpos=%d, bytepos=%d, palettepos=%d, mask=%d, totalBytes=%d", currByte, bitPos, bytePos, palettePos, mask, len(tightBytes))
 
 				if bitPos == 0 {
 					bytePos++
@@ -365,15 +365,18 @@ func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palett
 			}
 			//palettePos = palettePos
 			enc.Image.Set(int(rect.X)+x, int(rect.Y)+y, palette[palettePos])
-			//logger.Debugf("(%d,%d): pos: %d col:%d", int(rect.X)+j, int(rect.Y)+i, palettePos, palette[palettePos])
+			//logger.Tracef("(%d,%d): pos: %d col:%d", int(rect.X)+j, int(rect.Y)+i, palettePos, palette[palettePos])
 		}
-		bitPos = 0
+		// if bitPos != 7 {
+		// 	bytePos++
+		// }
+		bitPos = 7
 	}
 
 }
 func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 
-	logger.Debugf("putting gradient size: %v on image: %v", rect, enc.Image.Bounds())
+	logger.Tracef("putting gradient size: %v on image: %v", rect, enc.Image.Bounds())
 
 	prevRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
 	thisRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
@@ -424,7 +427,7 @@ func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 		for idx := 3; idx < (len(thisRow) - 3); idx += 3 {
 			myColor := color.RGBA{R: (thisRow[idx]), G: (thisRow[idx+1]), B: (thisRow[idx+2]), A: 1}
 			enc.Image.Set(idx/3+int(rect.X)-1, int(rect.Y)+i, myColor)
-			//logger.Debugf("putting pixel: idx=%d, pos=(%d,%d), col=%v", idx, idx/3+int(rect.X), int(rect.Y)+i, myColor)
+			//logger.Tracef("putting pixel: idx=%d, pos=(%d,%d), col=%v", idx, idx/3+int(rect.X), int(rect.Y)+i, myColor)
 
 		}
 
@@ -436,7 +439,7 @@ func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 }
 
 func (enc *TightEncoding) decodeGradientData(rect *Rectangle, buf []byte) {
-	logger.Debugf("putting gradient on image: %v", enc.Image.Bounds())
+	logger.Tracef("putting gradient on image: %v", enc.Image.Bounds())
 	var dx, dy, c int
 	prevRow := make([]byte, rect.Width*3) //new byte[w * 3];
 	thisRow := make([]byte, rect.Width*3) //new byte[w * 3];
@@ -453,7 +456,7 @@ func (enc *TightEncoding) decodeGradientData(rect *Rectangle, buf []byte) {
 			pix[c] = byte(prevRow[c] + buf[dy*int(rect.Width)*3+c])
 			thisRow[c] = pix[c]
 		}
-		//logger.Debugf("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), rect.X, rect.Y, rect.Width, rect.Height, dy)
+		//logger.Tracef("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), rect.X, rect.Y, rect.Width, rect.Height, dy)
 		myColor := color.RGBA{R: (pix[0]), G: (pix[1]), B: (pix[2]), A: 1}
 		dst.SetRGBA(int(rect.X), dy+int(rect.Y), myColor)
 
@@ -469,7 +472,7 @@ func (enc *TightEncoding) decodeGradientData(rect *Rectangle, buf []byte) {
 				pix[c] = (byte)(byte(est[c]) + buf[(dy*int(rect.Width)+dx)*3+c])
 				thisRow[dx*3+c] = pix[c]
 			}
-			//logger.Debugf("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), x, y, w, h, dy)
+			//logger.Tracef("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), x, y, w, h, dy)
 			myColor := color.RGBA{R: pix[0], G: (pix[1]), B: (pix[2]), A: 1}
 			dst.SetRGBA(dx+int(rect.X), dy+int(rect.Y), myColor)
 
@@ -511,7 +514,7 @@ func (enc *TightEncoding) readTightPalette(connReader Conn, bytesPixel int) (col
 	}
 
 	paletteSize := colorCount + 1 // add one more
-	//logger.Debugf("----PALETTE_FILTER: paletteSize=%d bytesPixel=%d\n", paletteSize, bytesPixel)
+	//logger.Tracef("----PALETTE_FILTER: paletteSize=%d bytesPixel=%d\n", paletteSize, bytesPixel)
 	//complete palette
 	paletteColorBytes, err := ReadBytes(int(paletteSize)*bytesPixel, connReader)
 	if err != nil {
@@ -528,12 +531,12 @@ func (enc *TightEncoding) readTightPalette(connReader Conn, bytesPixel int) (col
 
 func (enc *TightEncoding) ReadTightData(dataSize int, c Conn, decoderId int) ([]byte, error) {
 
-	logger.Debugf(">>> Reading zipped tight data from decoder: %d", decoderId)
+	logger.Tracef(">>> Reading zipped tight data from decoder: %d", decoderId)
 	if int(dataSize) < TightMinToCompress {
 		return ReadBytes(int(dataSize), c)
 	}
 	zlibDataLen, err := readTightLength(c)
-	//logger.Debugf("RfbReadHelper.ReadTightData: compactlen=%d", zlibDataLen)
+	//logger.Tracef("RfbReadHelper.ReadTightData: compactlen=%d", zlibDataLen)
 	if err != nil {
 		return nil, err
 	}
@@ -658,12 +661,12 @@ func readTightLength(c Conn) (int, error) {
  */
 func (enc *TightEncoding) drawTightBytes(bytes []byte, rect *Rectangle) {
 	bytesPos := 0
-	logger.Debugf("drawTightBytes: len(bytes)= %d, %v", len(bytes), rect)
+	logger.Tracef("drawTightBytes: len(bytes)= %d, %v", len(bytes), rect)
 
 	for ly := rect.Y; ly < rect.Y+rect.Height; ly++ {
 		for lx := rect.X; lx < rect.X+rect.Width; lx++ {
 			color := color.RGBA{R: bytes[bytesPos], G: bytes[bytesPos+1], B: bytes[bytesPos+2], A: 1}
-			//logger.Debugf("drawTightBytes: setting pixel= (%d,%d): %v", int(lx), int(ly), color)
+			//logger.Tracef("drawTightBytes: setting pixel= (%d,%d): %v", int(lx), int(ly), color)
 			enc.Image.Set(int(lx), int(ly), color)
 
 			bytesPos += 3

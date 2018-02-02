@@ -16,7 +16,7 @@ type DV9ImageEncoder struct {
 }
 
 func (enc *DV9ImageEncoder) Init(videoFileName string) {
-	fileExt := ".webm"
+	fileExt := ".mp4"
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
 	}
@@ -38,12 +38,12 @@ func (enc *DV9ImageEncoder) Init(videoFileName string) {
 		// "-an", "-f", "webm",
 		"-cpu-used", "-8",
 
-		"-preset", "ultrafast",
+		//"-preset", "ultrafast",
 		"-deadline", "realtime",
 		//"-cpu-used", "-5",
 		"-maxrate", "2.5M",
 		"-bufsize", "10M",
-		"-g", "6",
+		"-g", "120",
 
 		//"-rc_lookahead", "16",
 		//"-profile", "0",
@@ -74,7 +74,7 @@ func (enc *DV9ImageEncoder) Run(encoderFilePath string, videoFileName string) {
 	}
 	enc.binaryPath = encoderFilePath
 	enc.Init(videoFileName)
-	logger.Infof("launching binary: %v", enc.cmd)
+	logger.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
 	if err != nil {
 		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)

@@ -189,7 +189,7 @@ func (auth *AuthVNCHTTP) Auth(c vnc.Conn) error {
 	if err != nil {
 		return fmt.Errorf("failed to get auth data: %s", err.Error())
 	}
-	logger.Infof("http auth: %s\n", buf.Bytes())
+	logger.Debugf("http auth: %s\n", buf.Bytes())
 	res.Body.Close()
 	data := strings.Split(buf.String(), " ")
 	if len(data) < 2 {

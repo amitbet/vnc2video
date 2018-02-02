@@ -38,7 +38,7 @@ func main() {
 	//vcodec := &encoders.DV8ImageEncoder{}
 	//vcodec := &encoders.DV9ImageEncoder{}
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	logger.Debugf("current dir: %s", dir)
+	logger.Tracef("current dir: %s", dir)
 	go vcodec.Run("./ffmpeg", "./output.mp4")
 
 	screenImage := image.NewRGBA(image.Rect(0, 0, int(fbs.Width()), int(fbs.Height())))

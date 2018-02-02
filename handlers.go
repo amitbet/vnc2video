@@ -157,7 +157,7 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 		return err
 	}
 
-	logger.Debugf("authenticating, secType: %d, auth code(0=success): %d", secType.Type(), authCode)
+	logger.Tracef("authenticating, secType: %d, auth code(0=success): %d", secType.Type(), authCode)
 	if authCode == 1 {
 		var reasonLength uint32
 		if err := binary.Read(c, binary.BigEndian, &reasonLength); err != nil {
@@ -258,7 +258,7 @@ type DefaultClientServerInitHandler struct{}
 
 // Handle provide default server init handler
 func (*DefaultClientServerInitHandler) Handle(c Conn) error {
-	logger.Debug("starting DefaultClientServerInitHandler")
+	logger.Trace("starting DefaultClientServerInitHandler")
 	var err error
 	srvInit := ServerInit{}
 
@@ -279,7 +279,7 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	if err = binary.Read(c, binary.BigEndian, &srvInit.NameText); err != nil {
 		return err
 	}
-	logger.Debugf("DefaultClientServerInitHandler got serverInit: %v", srvInit)
+	logger.Tracef("DefaultClientServerInitHandler got serverInit: %v", srvInit)
 	c.SetDesktopName(srvInit.NameText)
 	if c.Protocol() == "aten1" {
 		c.SetWidth(800)
@@ -375,7 +375,7 @@ type DefaultClientClientInitHandler struct{}
 
 // Handle provide default client client init handler
 func (*DefaultClientClientInitHandler) Handle(c Conn) error {
-	logger.Debug("starting DefaultClientClientInitHandler")
+	logger.Trace("starting DefaultClientClientInitHandler")
 	cfg := c.Config().(*ClientConfig)
 	var shared uint8
 	if cfg.Exclusive {
@@ -386,7 +386,7 @@ func (*DefaultClientClientInitHandler) Handle(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, shared); err != nil {
 		return err
 	}
-	logger.Debugf("DefaultClientClientInitHandler sending: shared=%d", shared)
+	logger.Tracef("DefaultClientClientInitHandler sending: shared=%d", shared)
 	return c.Flush()
 }
 

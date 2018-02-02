@@ -21,12 +21,12 @@ func (*CopyRectEncoding) Reset() error {
 func (*CopyRectEncoding) Type() EncodingType { return EncCopyRect }
 
 func (enc *CopyRectEncoding) SetTargetImage(img draw.Image) {
-	//logger.Debugf("!!!!!!!!!!!!!setting image: %v", img.Bounds())
+	//logger.Tracef("!!!!!!!!!!!!!setting image: %v", img.Bounds())
 	enc.Image = img
 }
 
 func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {
-	logger.Debugf("Reading: CopyRect %v", rect)
+	logger.Tracef("Reading: CopyRect %v", rect)
 	if err := binary.Read(c, binary.BigEndian, &enc.SX); err != nil {
 		return err
 	}

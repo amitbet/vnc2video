@@ -45,7 +45,7 @@ func (enc *MJPegImageEncoder) Encode(img image.Image) {
 		logger.Error("Error while creating jpeg: ", err)
 	}
 
-	//logger.Debugf("buff: %v\n", buf.Bytes())
+	//logger.Tracef("buff: %v\n", buf.Bytes())
 
 	err = enc.avWriter.AddFrame(buf.Bytes())
 	if err != nil {

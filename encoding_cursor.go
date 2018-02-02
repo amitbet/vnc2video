@@ -29,7 +29,7 @@ func (enc *CursorPseudoEncoding) Reset() error {
 func (*CursorPseudoEncoding) Type() EncodingType { return EncCursorPseudo }
 
 func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
-	logger.Debugf("CursorPseudoEncoding.Read: got rect: %v", rect)
+	logger.Tracef("CursorPseudoEncoding.Read: got rect: %v", rect)
 	//rgba := make([]byte, int(rect.Height)*int(rect.Width)*int(c.PixelFormat().BPP/8))
 	numColors := int(rect.Height) * int(rect.Width)
 	colors := make([]color.Color, numColors)
@@ -53,7 +53,11 @@ func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 	canvas := enc.Image.(*VncCanvas)
 	//canvas.Cursor =
 	cursorImg := image.NewRGBA(MakeRect(0, 0, int(rect.Width), int(rect.Height)))
-	cursorMask := image.NewRGBA(cursorImg.Bounds())
+	//cursorMask := image.NewRGBA(cursorImg.Bounds())
+	cursorMask := [][]bool{}
+	for i := 0; i < int(rect.Width); i++ {
+		cursorMask = append(cursorMask, make([]bool, rect.Height))
+	}
 
 	//int[] cursorPixels = new int[rect.width * rect.height];
 	for y := 0; y < int(rect.Height); y++ {
@@ -61,8 +65,9 @@ func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 			offset := y*int(rect.Width) + x
 			if bitmask[y*int(scanLine)+x/8]&(1<<uint(7-x%8)) > 0 {
 				cursorImg.Set(x, y, colors[offset])
-				cursorMask.Set(x, y, color.RGBA{1, 1, 1, 1})
-				//logger.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+				//cursorMask.Set(x, y, color.RGBA{1, 1, 1, 1})
+				cursorMask[x][y] = true
+				//logger.Tracef("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
 			}
 		}
 	}

@@ -65,7 +65,7 @@ func (*TightPngEncoding) Type() EncodingType { return EncTightPng }
 
 func (enc *TightPngEncoding) Read(c Conn, rect *Rectangle) error {
 	tcc, err := readTightCC(c)
-	logger.Debug("starting to read a tight rect: %v", rect)
+	logger.Trace("starting to read a tight rect: %v", rect)
 	if err != nil {
 		return err
 	}

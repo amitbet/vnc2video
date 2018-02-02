@@ -50,12 +50,12 @@ func main() {
 		case msg := <-chClient:
 			switch msg.Type() {
 			default:
-				logger.Debugf("11 Received message type:%v msg:%v\n", msg.Type(), msg)
+				logger.Tracef("11 Received message type:%v msg:%v\n", msg.Type(), msg)
 			}
 		case msg := <-chServer:
 			switch msg.Type() {
 			default:
-				logger.Debugf("22 Received message type:%v msg:%v\n", msg.Type(), msg)
+				logger.Tracef("22 Received message type:%v msg:%v\n", msg.Type(), msg)
 			}
 		}
 	}

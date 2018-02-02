@@ -29,28 +29,30 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		"-r", "5",
 		//"-re",
 		//"-i", "pipe:0",
+
+		"-vsync", "2",
+		///"-probesize", "10000000",
+		"-y",
 		"-i", "-",
 		"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
-		"-b:v", "1M",
+		"-b:v", "0.5M",
 		"-threads", "8",
 		//"-speed", "0",
 		//"-lossless", "1", //for vpx
-		// "-tile-columns", "6",
-		//"-frame-parallel", "1",
 		// "-an", "-f", "webm",
-		//"-cpu-used", "-16",
-		"-cpu-used", "-5",
-		"-preset", "ultrafast",
-		"-deadline", "realtime",
+		"-preset", "veryfast",
+		"-tune", "animation",
+		"-maxrate", "0.6M",
+		"-bufsize", "50M",
+		"-g", "120",
 
-		"-maxrate", "2.5M",
-		"-bufsize", "10M",
-		"-g", "6",
+		//"-crf", "0",  //for lossless encoding!!!!
 
 		//"-rc_lookahead", "16",
 		//"-profile", "0",
+		//"-crf", "18",
 		"-qmax", "51",
-		"-qmin", "11",
+		"-qmin", "7",
 		//"-slices", "4",
 		//"-vb", "2M",
 
@@ -77,7 +79,7 @@ func (enc *X264ImageEncoder) Run(encoderFilePath string, videoFileName string) e
 
 	enc.binaryPath = encoderFilePath
 	enc.Init(videoFileName)
-	logger.Infof("launching binary: %v", enc.cmd)
+	logger.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
 	if err != nil {
 		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
