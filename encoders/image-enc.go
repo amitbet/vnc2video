@@ -1,6 +1,7 @@
 package encoders
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -47,43 +48,29 @@ func encodePPMforRGBA(w io.Writer, img *image.RGBA) error {
 		return err
 	}
 
-	// write the bitmap
-	//colModel := color.RGBAModel
 	if convImage == nil {
 		convImage = make([]uint8, size.Dy()*size.Dx()*3)
 	}
 
-	//img1 := (img.(*vnc2video.VncCanvas).Image).(*image.RGBA)
 	rowCount := 0
 	for i := 0; i < len(img.Pix); i++ {
 		if (i % 4) != 3 {
-			//logger.Debug("pix: ", i)
 			convImage[rowCount] = img.Pix[i]
 			rowCount++
 		}
 	}
 
-	// for y := size.Min.Y; y < size.Max.Y; y++ {
-	// 	i := 0
-	// 	for x := size.Min.X; x < size.Max.X; x++ {
-
-	// 		color := (img.At(x, y)).(color.RGBA)
-	// 		row[i] = color.R
-	// 		row[i+1] = color.G
-	// 		row[i+2] = color.B
-	// 		i += 3
-	// 	}
-
 	if _, err := w.Write(convImage); err != nil {
 		return err
 	}
-	// if _, err := w.Write(img.Pix); err != nil {
-	// 	return err
-	// }
-	// }
+
 	return nil
 }
+
 func encodePPM(w io.Writer, img image.Image) error {
+	if img == nil {
+		return errors.New("nil image")
+	}
 	img1, isRGBImage := img.(*vnc2video.RGBImage)
 	img2, isRGBA := img.(*image.RGBA)
 	if isRGBImage {
@@ -103,40 +90,9 @@ func encodePPMforRGBImage(w io.Writer, img *vnc2video.RGBImage) error {
 		return err
 	}
 
-	// write the bitmap
-	//colModel := color.RGBAModel
-	// // if convImage == nil {
-	// // 	convImage = make([]uint8, size.Dy()*size.Dx()*3)
-	// // }
-
-	// // img1 := (img.(*vnc2video.VncCanvas).Image).(*image.RGBA)
-	// // rowCount := 0
-	// // for i := 0; i < len(img1.Pix); i++ {
-	// // 	if (i % 4) != 3 {
-	// // 		//logger.Debug("pix: ", i)
-	// // 		convImage[rowCount] = img1.Pix[i]
-	// // 		rowCount++
-	// // 	}
-	// // }
-
-	// for y := size.Min.Y; y < size.Max.Y; y++ {
-	// 	i := 0
-	// 	for x := size.Min.X; x < size.Max.X; x++ {
-
-	// 		color := (img.At(x, y)).(color.RGBA)
-	// 		row[i] = color.R
-	// 		row[i+1] = color.G
-	// 		row[i+2] = color.B
-	// 		i += 3
-	// 	}
-
-	// // if _, err := w.Write(convImage); err != nil {
-	// // 	return err
-	// // }
 	if _, err := w.Write(img.Pix); err != nil {
 		return err
 	}
-	// }
 	return nil
 }
 

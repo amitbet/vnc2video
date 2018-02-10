@@ -151,7 +151,7 @@ func NewFBSPlayHelper(r *FbsConn) *FBSPlayHelper {
 // 	switch seg.SegmentType {
 // 	case SegmentFullyParsedClientMessage:
 // 		clientMsg := seg.Message.(ClientMessage)
-// 		logger.Debugf("ClientUpdater.Consume:(vnc-server-bound) got ClientMessage type=%s", clientMsg.Type())
+// 		logger.Tracef("ClientUpdater.Consume:(vnc-server-bound) got ClientMessage type=%s", clientMsg.Type())
 // 		switch clientMsg.Type() {
 
 // 		case FramebufferUpdateRequestMsgType:

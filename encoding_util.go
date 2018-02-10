@@ -11,6 +11,9 @@ import (
 
 type VncCanvas struct {
 	draw.Image
+	//DisplayBuff draw.Image
+	//WriteBuff      draw.Image
+	imageBuffs     [2]draw.Image
 	Cursor         draw.Image
 	CursorMask     [][]bool
 	CursorBackup   draw.Image
@@ -20,12 +23,16 @@ type VncCanvas struct {
 }
 
 func NewVncCanvas(width, height int) *VncCanvas {
-	img := NewRGBImage(image.Rect(0, 0, width, height))
+	//dispImg := NewRGBImage(image.Rect(0, 0, width, height))
+	writeImg := NewRGBImage(image.Rect(0, 0, width, height))
 	canvas := VncCanvas{
-		Image: img,
+		Image: writeImg,
+		//DisplayBuff: dispImg,
+		//WriteBuff:   writeImg,
 	}
 	return &canvas
 }
+
 func (c *VncCanvas) RemoveCursor() image.Image {
 	if c.Cursor == nil || c.CursorLocation == nil {
 		return c.Image
@@ -54,6 +61,13 @@ func (c *VncCanvas) RemoveCursor() image.Image {
 	}
 	return img
 }
+
+// func (c *VncCanvas) SwapBuffers() {
+// 	swapSpace := c.DisplayBuff
+// 	c.DisplayBuff = c.WriteBuff
+// 	c.WriteBuff = swapSpace
+// 	c.Image = c.WriteBuff
+// }
 
 func (c *VncCanvas) PaintCursor() image.Image {
 	if c.Cursor == nil || c.CursorLocation == nil {

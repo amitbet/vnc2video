@@ -302,6 +302,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 				canvas.RemoveCursor()
 				parsedMsg, err := msg.Read(c)
 				canvas.PaintCursor()
+				//canvas.SwapBuffers()
 				logger.Debugf("============== End Message: type=%d ==============", messageType)
 
 				if err != nil {

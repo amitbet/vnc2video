@@ -64,15 +64,15 @@ func main() {
 	// 	fmt.Println(err)
 	// 	os.Exit(1)
 	// }
-	//vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 4}
-	vcodec := &encoders.X264ImageEncoder{}
-	//vcodec := &encoders.VP8ImageEncoder{}
-	//vcodec := &encoders.DV9ImageEncoder{}
+	vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 12}
+	//vcodec := &encoders.X264ImageEncoder{FFMpegBinPath:"./ffmpeg"}
+	//vcodec := &encoders.VP8ImageEncoder{FFMpegBinPath:"./ffmpeg"}
+	//vcodec := &encoders.DV9ImageEncoder{FFMpegBinPath:"./ffmpeg"}
 
 	//counter := 0
 	//vcodec.Init("./output" + strconv.Itoa(counter))
 
-	go vcodec.Run("./ffmpeg", "./output.mp4")
+	go vcodec.Run("./output.mp4")
 	//windows
 	///go vcodec.Run("/Users/amitbet/Dropbox/go/src/vnc2webm/example/file-reader/ffmpeg", "./output.mp4")
 
@@ -97,7 +97,7 @@ func main() {
 		vnc.EncCursorPseudo,
 		vnc.EncPointerPosPseudo,
 		vnc.EncCopyRect,
-		//vnc.EncTight,
+		vnc.EncTight,
 		//vnc.EncZRLE,
 		//vnc.EncHextile,
 		//vnc.EncZlib,
@@ -107,13 +107,20 @@ func main() {
 	//screenImage := image.NewRGBA64(rect)
 	// Process messages coming in on the ServerMessage channel.
 
-	// go func() {
-	// 	for {
-	// 		//logger.Debugf("encoding screen")
-	// 		vcodec.Encode(screenImage)
-	// 		time.Sleep(100 * time.Millisecond)
-	// 	}
-	// }()
+	go func() {
+		for {
+			timeStart := time.Now()
+
+			vcodec.Encode(screenImage.Image)
+
+			timeTarget := timeStart.Add((1000 / 12) * time.Millisecond)
+			timeLeft := timeTarget.Sub(time.Now())
+			if timeLeft > 0 {
+				time.Sleep(timeLeft)
+			}
+		}
+	}()
+
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
 		syscall.SIGHUP,
@@ -155,7 +162,7 @@ func main() {
 				reqPerSec := float64(frameBufferReq) / secsPassed
 				//counter++
 				//jpeg.Encode(out, screenImage, nil)
-				vcodec.Encode(screenImage.Image)
+				///vcodec.Encode(screenImage)
 				logger.Infof("reqs=%d, seconds=%f, Req Per second= %f", frameBufferReq, secsPassed, reqPerSec)
 
 				reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}

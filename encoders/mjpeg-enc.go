@@ -14,6 +14,7 @@ type MJPegImageEncoder struct {
 	avWriter  mjpeg.AviWriter
 	Quality   int
 	Framerate int32
+	closed    bool
 }
 
 func (enc *MJPegImageEncoder) Init(videoFileName string) {
@@ -35,6 +36,10 @@ func (enc *MJPegImageEncoder) Run(videoFileName string) {
 }
 
 func (enc *MJPegImageEncoder) Encode(img image.Image) {
+	if enc.closed {
+		return
+	}
+
 	buf := &bytes.Buffer{}
 	jOpts := &jpeg.Options{Quality: enc.Quality}
 	if enc.Quality <= 0 {
@@ -55,6 +60,8 @@ func (enc *MJPegImageEncoder) Encode(img image.Image) {
 
 func (enc *MJPegImageEncoder) Close() {
 	err := enc.avWriter.Close()
+
+	enc.closed = true
 	if err != nil {
 		logger.Error("Error while closing mjpeg: ", err)
 	}

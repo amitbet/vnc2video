@@ -73,6 +73,7 @@ func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 	}
 	canvas.CursorOffset = &image.Point{int(rect.X), int(rect.Y)}
 	canvas.Cursor = cursorImg
+	canvas.CursorBackup = image.NewRGBA(cursorImg.Bounds())
 	canvas.CursorMask = cursorMask
 	/*
 		rectStride := 4 * rect.Width

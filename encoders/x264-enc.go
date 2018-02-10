@@ -11,9 +11,10 @@ import (
 )
 
 type X264ImageEncoder struct {
-	cmd        *exec.Cmd
-	binaryPath string
-	input      io.WriteCloser
+	FFMpegBinPath string
+	cmd           *exec.Cmd
+	input         io.WriteCloser
+	closed        bool
 }
 
 func (enc *X264ImageEncoder) Init(videoFileName string) {
@@ -22,37 +23,43 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		videoFileName = videoFileName + fileExt
 	}
 	//binary := "./ffmpeg"
-	cmd := exec.Command(enc.binaryPath,
+	cmd := exec.Command(enc.FFMpegBinPath,
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "5",
+		"-r", "12",
+
 		//"-re",
 		//"-i", "pipe:0",
-
-		"-vsync", "2",
+		"-an", //no audio
+		//"-vsync", "2",
 		///"-probesize", "10000000",
 		"-y",
+
 		"-i", "-",
+		//"–s", "640×360",
 		"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
-		"-b:v", "0.5M",
+		//"-b:v", "0.33M",
 		"-threads", "8",
+		///"-coder", "1",
+		///"-bf", "0",
+		///"-me_method", "hex",
 		//"-speed", "0",
 		//"-lossless", "1", //for vpx
 		// "-an", "-f", "webm",
 		"-preset", "veryfast",
-		"-tune", "animation",
-		"-maxrate", "0.6M",
+		//"-tune", "animation",
+		"-maxrate", "0.5M",
 		"-bufsize", "50M",
-		"-g", "120",
+		"-g", "250",
 
-		//"-crf", "0",  //for lossless encoding!!!!
+		//"-crf", "0", //for lossless encoding!!!!
 
 		//"-rc_lookahead", "16",
 		//"-profile", "0",
-		//"-crf", "18",
-		"-qmax", "51",
-		"-qmin", "7",
+		"-crf", "34",
+		//"-qmax", "51",
+		//"-qmin", "7",
 		//"-slices", "4",
 		//"-vb", "2M",
 
@@ -71,13 +78,12 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *X264ImageEncoder) Run(encoderFilePath string, videoFileName string) error {
-	if _, err := os.Stat(encoderFilePath); os.IsNotExist(err) {
-		logger.Error("encoder file doesn't exist in path:", encoderFilePath)
+func (enc *X264ImageEncoder) Run(videoFileName string) error {
+	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
+		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 		return errors.New("encoder file doesn't exist in path" + videoFileName)
 	}
 
-	enc.binaryPath = encoderFilePath
 	enc.Init(videoFileName)
 	logger.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
@@ -88,11 +94,17 @@ func (enc *X264ImageEncoder) Run(encoderFilePath string, videoFileName string) e
 	return nil
 }
 func (enc *X264ImageEncoder) Encode(img image.Image) {
+	if enc.input == nil || enc.closed {
+		return
+	}
+
 	err := encodePPM(enc.input, img)
 	if err != nil {
 		logger.Error("error while encoding image:", err)
 	}
 }
-func (enc *X264ImageEncoder) Close() {
 
+func (enc *X264ImageEncoder) Close() {
+	enc.closed = true
+	//enc.cmd.Process.Kill()
 }

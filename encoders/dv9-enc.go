@@ -10,9 +10,9 @@ import (
 )
 
 type DV9ImageEncoder struct {
-	cmd        *exec.Cmd
-	binaryPath string
-	input      io.WriteCloser
+	cmd           *exec.Cmd
+	FFMpegBinPath string
+	input         io.WriteCloser
 }
 
 func (enc *DV9ImageEncoder) Init(videoFileName string) {
@@ -67,12 +67,12 @@ func (enc *DV9ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *DV9ImageEncoder) Run(encoderFilePath string, videoFileName string) {
-	if _, err := os.Stat(encoderFilePath); os.IsNotExist(err) {
-		logger.Error("encoder file doesn't exist in path:", encoderFilePath)
+func (enc *DV9ImageEncoder) Run(videoFileName string) {
+	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
+		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 		return
 	}
-	enc.binaryPath = encoderFilePath
+
 	enc.Init(videoFileName)
 	logger.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()

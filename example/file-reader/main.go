@@ -3,10 +3,10 @@ package main
 import (
 	"image"
 	"os"
+	"path/filepath"
 	vnc "vnc2video"
 	"vnc2video/encoders"
 	"vnc2video/logger"
-	"path/filepath"
 )
 
 func main() {
@@ -34,12 +34,12 @@ func main() {
 	}
 
 	//launch video encoding process:
-	vcodec := &encoders.X264ImageEncoder{}
+	vcodec := &encoders.X264ImageEncoder{FFMpegBinPath: "./ffmpeg"}
 	//vcodec := &encoders.DV8ImageEncoder{}
 	//vcodec := &encoders.DV9ImageEncoder{}
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	logger.Tracef("current dir: %s", dir)
-	go vcodec.Run("./ffmpeg", "./output.mp4")
+	go vcodec.Run("./output.mp4")
 
 	screenImage := image.NewRGBA(image.Rect(0, 0, int(fbs.Width()), int(fbs.Height())))
 	for _, enc := range encs {
@@ -49,7 +49,6 @@ func main() {
 			myRenderer.SetTargetImage(screenImage)
 		}
 	}
-
 
 	msgReader := vnc.NewFBSPlayHelper(fbs)
 

@@ -146,7 +146,7 @@ func (enc *TightEncoding) resetDecoders(compControl uint8) {
 }
 
 func (enc *TightEncoding) SetTargetImage(img draw.Image) {
-	enc.Image = img.(*VncCanvas).Image
+	enc.Image = img
 }
 
 var counter int = 0
@@ -295,7 +295,7 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 		if len(palette) == 2 {
 			dataLength = int(rect.Height) * ((int(rect.Width) + 7) / 8)
 		} else {
-			dataLength = int(rect.Width * rect.Height)
+			dataLength = int(rect.Width) * int(rect.Height)
 		}
 		tightBytes, err := enc.ReadTightData(dataLength, r, int(decoderId))
 		//logger.Tracef("got tightBytes: %v", tightBytes)
@@ -438,50 +438,50 @@ func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 	}
 }
 
-func (enc *TightEncoding) decodeGradientData(rect *Rectangle, buf []byte) {
-	logger.Tracef("putting gradient on image: %v", enc.Image.Bounds())
-	var dx, dy, c int
-	prevRow := make([]byte, rect.Width*3) //new byte[w * 3];
-	thisRow := make([]byte, rect.Width*3) //new byte[w * 3];
-	pix := make([]byte, 3)
-	est := make([]int, 3)
+// func (enc *TightEncoding) decodeGradientData(rect *Rectangle, buf []byte) {
+// 	logger.Tracef("putting gradient on image: %v", enc.Image.Bounds())
+// 	var dx, dy, c int
+// 	prevRow := make([]byte, rect.Width*3) //new byte[w * 3];
+// 	thisRow := make([]byte, rect.Width*3) //new byte[w * 3];
+// 	pix := make([]byte, 3)
+// 	est := make([]int, 3)
 
-	dst := (enc.Image).(*image.RGBA) // enc.Image.(*image.RGBA)
-	//offset := int(rect.Y)*dst.Bounds().Max.X + int(rect.X)
+// 	dst := (enc.Image) // enc.Image.(*image.RGBA)
+// 	//offset := int(rect.Y)*dst.Bounds().Max.X + int(rect.X)
 
-	for dy = 0; dy < int(rect.Height); dy++ {
-		//offset := dst.PixOffset(x, y)
-		/* First pixel in a row */
-		for c = 0; c < 3; c++ {
-			pix[c] = byte(prevRow[c] + buf[dy*int(rect.Width)*3+c])
-			thisRow[c] = pix[c]
-		}
-		//logger.Tracef("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), rect.X, rect.Y, rect.Width, rect.Height, dy)
-		myColor := color.RGBA{R: (pix[0]), G: (pix[1]), B: (pix[2]), A: 1}
-		dst.SetRGBA(int(rect.X), dy+int(rect.Y), myColor)
+// 	for dy = 0; dy < int(rect.Height); dy++ {
+// 		//offset := dst.PixOffset(x, y)
+// 		/* First pixel in a row */
+// 		for c = 0; c < 3; c++ {
+// 			pix[c] = byte(prevRow[c] + buf[dy*int(rect.Width)*3+c])
+// 			thisRow[c] = pix[c]
+// 		}
+// 		//logger.Tracef("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), rect.X, rect.Y, rect.Width, rect.Height, dy)
+// 		myColor := color.RGBA{R: (pix[0]), G: (pix[1]), B: (pix[2]), A: 1}
+// 		dst.Set(int(rect.X), dy+int(rect.Y), myColor)
 
-		/* Remaining pixels of a row */
-		for dx = 1; dx < int(rect.Width); dx++ {
-			for c = 0; c < 3; c++ {
-				est[c] = int((prevRow[dx*3+c] & 0xFF) + (pix[c] & 0xFF) - (prevRow[(dx-1)*3+c] & 0xFF))
-				if est[c] > 0xFF {
-					est[c] = 0xFF
-				} else if est[c] < 0x00 {
-					est[c] = 0x00
-				}
-				pix[c] = (byte)(byte(est[c]) + buf[(dy*int(rect.Width)+dx)*3+c])
-				thisRow[dx*3+c] = pix[c]
-			}
-			//logger.Tracef("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), x, y, w, h, dy)
-			myColor := color.RGBA{R: pix[0], G: (pix[1]), B: (pix[2]), A: 1}
-			dst.SetRGBA(dx+int(rect.X), dy+int(rect.Y), myColor)
+// 		/* Remaining pixels of a row */
+// 		for dx = 1; dx < int(rect.Width); dx++ {
+// 			for c = 0; c < 3; c++ {
+// 				est[c] = int((prevRow[dx*3+c] & 0xFF) + (pix[c] & 0xFF) - (prevRow[(dx-1)*3+c] & 0xFF))
+// 				if est[c] > 0xFF {
+// 					est[c] = 0xFF
+// 				} else if est[c] < 0x00 {
+// 					est[c] = 0x00
+// 				}
+// 				pix[c] = (byte)(byte(est[c]) + buf[(dy*int(rect.Width)+dx)*3+c])
+// 				thisRow[dx*3+c] = pix[c]
+// 			}
+// 			//logger.Tracef("putting pixel:%d,%d,%d at offset: %d, pixArrayLen= %v, rect=x:%d,y:%d,w:%d,h:%d, Yposition=%d", pix[0], pix[1], pix[2], offset, len(dst.Pix), x, y, w, h, dy)
+// 			myColor := color.RGBA{R: pix[0], G: (pix[1]), B: (pix[2]), A: 1}
+// 			dst.Set(dx+int(rect.X), dy+int(rect.Y), myColor)
 
-		}
+// 		}
 
-		copy(prevRow, thisRow)
-	}
-	enc.Image = dst
-}
+// 		copy(prevRow, thisRow)
+// 	}
+// 	enc.Image = dst
+// }
 
 func ReadBytes(count int, r io.Reader) ([]byte, error) {
 	buff := make([]byte, count)

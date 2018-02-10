@@ -10,9 +10,10 @@ import (
 )
 
 type VP8ImageEncoder struct {
-	cmd        *exec.Cmd
-	binaryPath string
-	input      io.WriteCloser
+	cmd           *exec.Cmd
+	FFMpegBinPath string
+	input         io.WriteCloser
+	closed        bool
 }
 
 func (enc *VP8ImageEncoder) Init(videoFileName string) {
@@ -28,6 +29,10 @@ func (enc *VP8ImageEncoder) Init(videoFileName string) {
 		"-vsync", "2",
 		"-r", "5",
 		"-probesize", "10000000",
+		"-an", //no audio
+		//"-vsync", "2",
+		///"-probesize", "10000000",
+		"-y",
 		//"-i", "pipe:0",
 		"-i", "-",
 
@@ -53,6 +58,7 @@ func (enc *VP8ImageEncoder) Init(videoFileName string) {
 		"-g", "180",
 		"-keyint_min", "180",
 		"-rc_lookahead", "20",
+		//"-crf", "34",
 		//"-profile", "0",
 		"-qmax", "51",
 		"-qmin", "3",
@@ -74,12 +80,12 @@ func (enc *VP8ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *VP8ImageEncoder) Run(encoderFilePath string, videoFileName string) {
-	if _, err := os.Stat(encoderFilePath); os.IsNotExist(err) {
-		logger.Error("encoder file doesn't exist in path:", encoderFilePath)
+func (enc *VP8ImageEncoder) Run(videoFileName string) {
+	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
+		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 		return
 	}
-	enc.binaryPath = encoderFilePath
+
 	enc.Init(videoFileName)
 	logger.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
@@ -88,6 +94,10 @@ func (enc *VP8ImageEncoder) Run(encoderFilePath string, videoFileName string) {
 	}
 }
 func (enc *VP8ImageEncoder) Encode(img image.Image) {
+	if enc.input == nil || enc.closed {
+		return
+	}
+
 	err := encodePPM(enc.input, img)
 	if err != nil {
 		logger.Error("error while encoding image:", err)
@@ -95,5 +105,5 @@ func (enc *VP8ImageEncoder) Encode(img image.Image) {
 }
 
 func (enc *VP8ImageEncoder) Close() {
-
+	enc.closed = true
 }
