@@ -10,7 +10,8 @@ import (
 	"vnc2video/logger"
 )
 
-type X264ImageEncoder struct {
+// this is a very common loseless encoder (but produces huge files)
+type HuffYuvImageEncoder struct {
 	FFMpegBinPath string
 	cmd           *exec.Cmd
 	input         io.WriteCloser
@@ -18,11 +19,12 @@ type X264ImageEncoder struct {
 	Framerate     int
 }
 
-func (enc *X264ImageEncoder) Init(videoFileName string) {
-	fileExt := ".mp4"
+func (enc *HuffYuvImageEncoder) Init(videoFileName string) {
 	if enc.Framerate == 0 {
 		enc.Framerate = 12
 	}
+
+	fileExt := ".avi"
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
 	}
@@ -42,9 +44,9 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 
 		"-i", "-",
 		//"–s", "640×360",
-		"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
+		"-vcodec", "huffyuv", //"libvpx",//"libvpx-vp9"//"libx264"
 		//"-b:v", "0.33M",
-		"-threads", "8",
+		"-threads", "7",
 		///"-coder", "1",
 		///"-bf", "0",
 		///"-me_method", "hex",
@@ -82,7 +84,7 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *X264ImageEncoder) Run(videoFileName string) error {
+func (enc *HuffYuvImageEncoder) Run(videoFileName string) error {
 	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
 		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 		return errors.New("encoder file doesn't exist in path" + videoFileName)
@@ -97,7 +99,7 @@ func (enc *X264ImageEncoder) Run(videoFileName string) error {
 	}
 	return nil
 }
-func (enc *X264ImageEncoder) Encode(img image.Image) {
+func (enc *HuffYuvImageEncoder) Encode(img image.Image) {
 	if enc.input == nil || enc.closed {
 		return
 	}
@@ -108,7 +110,7 @@ func (enc *X264ImageEncoder) Encode(img image.Image) {
 	}
 }
 
-func (enc *X264ImageEncoder) Close() {
+func (enc *HuffYuvImageEncoder) Close() {
 	enc.closed = true
 	//enc.cmd.Process.Kill()
 }

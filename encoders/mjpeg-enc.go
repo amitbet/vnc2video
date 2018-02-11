@@ -19,6 +19,9 @@ type MJPegImageEncoder struct {
 
 func (enc *MJPegImageEncoder) Init(videoFileName string) {
 	fileExt := ".avi"
+	if enc.Framerate == 0 {
+		enc.Framerate = 12
+	}
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
 	}

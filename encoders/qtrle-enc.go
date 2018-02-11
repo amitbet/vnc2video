@@ -10,7 +10,8 @@ import (
 	"vnc2video/logger"
 )
 
-type X264ImageEncoder struct {
+// QTRLEImageEncoder quick time rle is an efficient loseless codec, uses .mov extension
+type QTRLEImageEncoder struct {
 	FFMpegBinPath string
 	cmd           *exec.Cmd
 	input         io.WriteCloser
@@ -18,8 +19,8 @@ type X264ImageEncoder struct {
 	Framerate     int
 }
 
-func (enc *X264ImageEncoder) Init(videoFileName string) {
-	fileExt := ".mp4"
+func (enc *QTRLEImageEncoder) Init(videoFileName string) {
+	fileExt := ".mov"
 	if enc.Framerate == 0 {
 		enc.Framerate = 12
 	}
@@ -42,9 +43,9 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 
 		"-i", "-",
 		//"–s", "640×360",
-		"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
+		"-vcodec", "qtrle", //"libvpx",//"libvpx-vp9"//"libx264"
 		//"-b:v", "0.33M",
-		"-threads", "8",
+		"-threads", "7",
 		///"-coder", "1",
 		///"-bf", "0",
 		///"-me_method", "hex",
@@ -82,7 +83,7 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 	}
 	enc.cmd = cmd
 }
-func (enc *X264ImageEncoder) Run(videoFileName string) error {
+func (enc *QTRLEImageEncoder) Run(videoFileName string) error {
 	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
 		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 		return errors.New("encoder file doesn't exist in path" + videoFileName)
@@ -97,7 +98,7 @@ func (enc *X264ImageEncoder) Run(videoFileName string) error {
 	}
 	return nil
 }
-func (enc *X264ImageEncoder) Encode(img image.Image) {
+func (enc *QTRLEImageEncoder) Encode(img image.Image) {
 	if enc.input == nil || enc.closed {
 		return
 	}
@@ -108,7 +109,7 @@ func (enc *X264ImageEncoder) Encode(img image.Image) {
 	}
 }
 
-func (enc *X264ImageEncoder) Close() {
+func (enc *QTRLEImageEncoder) Close() {
 	enc.closed = true
 	//enc.cmd.Process.Kill()
 }

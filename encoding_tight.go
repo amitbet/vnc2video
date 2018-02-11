@@ -367,9 +367,8 @@ func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palett
 			enc.Image.Set(int(rect.X)+x, int(rect.Y)+y, palette[palettePos])
 			//logger.Tracef("(%d,%d): pos: %d col:%d", int(rect.X)+j, int(rect.Y)+i, palettePos, palette[palettePos])
 		}
-		// if bitPos != 7 {
-		// 	bytePos++
-		// }
+
+		// reset bit alignment to first bit in byte (msb)
 		bitPos = 7
 	}
 

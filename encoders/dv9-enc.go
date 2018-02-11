@@ -13,10 +13,14 @@ type DV9ImageEncoder struct {
 	cmd           *exec.Cmd
 	FFMpegBinPath string
 	input         io.WriteCloser
+	Framerate     int
 }
 
 func (enc *DV9ImageEncoder) Init(videoFileName string) {
 	fileExt := ".mp4"
+	if enc.Framerate == 0 {
+		enc.Framerate = 12
+	}
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
 	}

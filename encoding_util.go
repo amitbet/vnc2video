@@ -3,10 +3,16 @@ package vnc2video
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"io"
+)
+
+const (
+	BlockWidth  = 16
+	BlockHeight = 16
 )
 
 type VncCanvas struct {
@@ -20,6 +26,7 @@ type VncCanvas struct {
 	CursorOffset   *image.Point
 	CursorLocation *image.Point
 	DrawCursor     bool
+	Changed        map[string]bool
 }
 
 func NewVncCanvas(width, height int) *VncCanvas {
@@ -31,6 +38,23 @@ func NewVncCanvas(width, height int) *VncCanvas {
 		//WriteBuff:   writeImg,
 	}
 	return &canvas
+}
+
+func (c *VncCanvas) SetChanged(rect *Rectangle) {
+	if c.Changed == nil {
+		c.Changed = make(map[string]bool)
+	}
+	for x := int(rect.X) / BlockWidth; x*BlockWidth < int(rect.X+rect.Width); x++ {
+		for y := int(rect.Y) / BlockHeight; y*BlockHeight < int(rect.Y+rect.Height); y++ {
+			key := fmt.Sprintf("%d,%d", x, y)
+			//fmt.Println("setting block: ", key)
+			c.Changed[key] = true
+		}
+	}
+}
+
+func (c *VncCanvas) Reset(rect *Rectangle) {
+	c.Changed = nil
 }
 
 func (c *VncCanvas) RemoveCursor() image.Image {

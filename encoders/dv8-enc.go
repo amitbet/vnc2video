@@ -14,10 +14,14 @@ type VP8ImageEncoder struct {
 	FFMpegBinPath string
 	input         io.WriteCloser
 	closed        bool
+	Framerate     int
 }
 
 func (enc *VP8ImageEncoder) Init(videoFileName string) {
 	fileExt := ".webm"
+	if enc.Framerate == 0 {
+		enc.Framerate = 12
+	}
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
 	}
