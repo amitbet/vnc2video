@@ -2,7 +2,7 @@
 After searching the web for an vnc client in golang which is not a toy & support more than handshake + RAW encoding, I came up blank, so, I set out to write one myself.
 
 The video encoding part means that something can be viewed, and since I don't really feel like writing GTK UIs in 2018 (plus VNC viewers are a dime a dozen), a video file will do.
-In actuality the images produced are go image structs and can easily be saved as JPEG, or displayed in any UI you want to create.
+In actuality the images produced are go images and can easily be saved as JPEG, or displayed in any UI you want to create.
 
 ## Encoding support:
 * Tight VNC
@@ -16,16 +16,17 @@ In actuality the images produced are go image structs and can easily be saved as
 * Desktop Size Pseudo
 * Cursor pos Pseudo
 
-Since go has no good client UI library I chose to encode video instead, but the code is fully functional as a rfb renderer and **renders into golang native image.Image structs**.
 ## Video codec support:
-* x264 (ffmpeg)
-* dv8 (ffmpeg)
-* dv9 (ffmpeg)
-* MJpeg (native golnag)
+* x264 (ffmpeg) - the market standard
+* dv8 (ffmpeg) - google encoding current standard for webm
+* dv9 (ffmpeg) - a stronger codec supported by webm format on most browsers
+* qtrle (ffmpeg) - the best losless encoding I could find. (10 - 20 MB/min)
+* huffyuv (ffmpeg) - a lossless encoding which is low-Cpu but less compressed (50-100 MB/min)
+* MJpeg (native golang implementation) - lossy intra frame only (every frame encoded separately)
 
-## Frame Buffer Stream file support
+## Frame Buffer Stream file support (fbs)
 * Supports reading & rendering fbs files that can be created by [vncProxy](https://github.com/amitbet/vncproxy)
-* This allows recording vnc without the cost of video encoding while retaining the ability to have video later if the vnc session is marked as important.
+* This allows recording vnc without the cost of video encoding while retaining the ability to transcode it into video later if the vnc session is found to be important.
 
 ## About
 It may seem strange that I didn't use my previous vncproxy code in order to create this client, but since that code is highly optimized to be a proxy (never hold a full message in buffer & introduce no lags), it is not best suited to be a client, so instead of spending the time reverting all the proxy-specific code, I just started from the most advanced go vnc-client code I found.
