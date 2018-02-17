@@ -36,6 +36,7 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 
 	for _, h := range cfg.Handlers {
 		if err := h.Handle(conn); err != nil {
+			logger.Error("Handshake failed, check that server is running: ", err)
 			conn.Close()
 			cfg.ErrorCh <- err
 			return nil, err

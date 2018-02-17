@@ -17,6 +17,9 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(4)
+	framerate := 12
+	runWithProfiler := false
+
 	// Establish TCP connection to VNC server.
 	nc, err := net.DialTimeout("tcp", os.Args[1], 5*time.Second)
 	if err != nil {
@@ -61,13 +64,15 @@ func main() {
 	}
 	// out, err := os.Create("./output" + strconv.Itoa(counter) + ".jpg")
 	// if err != nil {
-	// 	fmt.Println(err)
+	// 	fmt.Println(err)p
 	// 	os.Exit(1)
 	// }
-	vcodec := &encoders.MJPegImageEncoder{Quality: 60, Framerate: 12}
-	//vcodec := &encoders.X264ImageEncoder{FFMpegBinPath:"./ffmpeg"}
-	//vcodec := &encoders.VP8ImageEncoder{FFMpegBinPath:"./ffmpeg"}
-	//vcodec := &encoders.DV9ImageEncoder{FFMpegBinPath:"./ffmpeg"}
+	//vcodec := &encoders.MJPegImageEncoder{Quality: 60 , Framerate: framerate}
+	//vcodec := &encoders.X264ImageEncoder{FFMpegBinPath: "./ffmpeg", Framerate: framerate}
+	//vcodec := &encoders.HuffYuvImageEncoder{FFMpegBinPath: "./ffmpeg", Framerate: framerate}
+	vcodec := &encoders.QTRLEImageEncoder{FFMpegBinPath: "./ffmpeg", Framerate: framerate}
+	//vcodec := &encoders.VP8ImageEncoder{FFMpegBinPath:"./ffmpeg", Framerate: framerate}
+	//vcodec := &encoders.DV9ImageEncoder{FFMpegBinPath:"./ffmpeg", Framerate: framerate}
 
 	//counter := 0
 	//vcodec.Init("./output" + strconv.Itoa(counter))
@@ -98,7 +103,7 @@ func main() {
 		vnc.EncPointerPosPseudo,
 		vnc.EncCopyRect,
 		vnc.EncTight,
-		//vnc.EncZRLE,
+		vnc.EncZRLE,
 		//vnc.EncHextile,
 		//vnc.EncZlib,
 		//vnc.EncRRE,
@@ -113,7 +118,7 @@ func main() {
 
 			vcodec.Encode(screenImage.Image)
 
-			timeTarget := timeStart.Add((1000 / 12) * time.Millisecond)
+			timeTarget := timeStart.Add((1000 / time.Duration(framerate)) * time.Millisecond)
 			timeLeft := timeTarget.Sub(time.Now())
 			if timeLeft > 0 {
 				time.Sleep(timeLeft)
@@ -130,7 +135,6 @@ func main() {
 	frameBufferReq := 0
 	timeStart := time.Now()
 
-	runWithProfiler := false
 	if runWithProfiler {
 		profFile := "prof.file"
 		f, err := os.Create(profFile)

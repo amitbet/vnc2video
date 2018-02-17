@@ -81,7 +81,8 @@ func (enc *TightPngEncoding) Read(c Conn, rect *Rectangle) error {
 		if err != nil {
 			return err
 		}
-		draw.Draw(enc.Image, enc.Image.Bounds(), img, image.Point{X: int(rect.X), Y: int(rect.Y)}, draw.Src)
+		//draw.Draw(enc.Image, enc.Image.Bounds(), img, image.Point{X: int(rect.X), Y: int(rect.Y)}, draw.Src)
+		DrawImage(enc.Image, img, image.Point{X: int(rect.X), Y: int(rect.Y)})
 	case TightCompressionFill:
 		var tpx TightPixel
 		if err := binary.Read(c, binary.BigEndian, &tpx); err != nil {

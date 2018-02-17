@@ -150,6 +150,11 @@ func (enc *TightEncoding) SetTargetImage(img draw.Image) {
 }
 
 var counter int = 0
+var disablePalette bool = false
+var disableGradient bool = false
+var disableCopy bool = false
+var disableJpeg bool = false
+var disableFill bool = false
 
 func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 
@@ -207,7 +212,9 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		dst := (enc.Image).(draw.Image) // enc.Image.(*image.RGBA)
 		myRect := MakeRectFromVncRect(rect)
 		logger.Tracef("--TIGHT_FILL: fill rect=%v,color=%v", myRect, rectColor)
-		FillRect(dst, &myRect, rectColor)
+		if !disableFill {
+			FillRect(dst, &myRect, rectColor)
+		}
 
 		if bytesPixel != 3 {
 			return fmt.Errorf("non tight bytesPerPixel format, should be 3 bytes")
@@ -229,13 +236,19 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 		if err != nil {
 			return err
 		}
-		//TODO: check if we can read jpeg directly from stream (this is safer for now)
+
 		buff := bytes.NewBuffer(jpegBytes)
 		img, err := jpeg.Decode(buff)
 		if err != nil {
 			logger.Error("problem while decoding jpeg:", err)
 		}
-		draw.Draw(enc.Image, enc.Image.Bounds(), img, image.Point{int(rect.X), int(rect.Y)}, draw.Src)
+		//logger.Info("not drawing:", img)
+		if !disableJpeg {
+			pos := image.Point{int(rect.X), int(rect.Y)}
+			DrawImage(enc.Image, img, pos)
+
+			//draw.Draw(enc.Image, enc.Image.Bounds(), img, pos, draw.Src)
+		}
 
 		return nil
 	default:
@@ -251,6 +264,7 @@ func (enc *TightEncoding) Read(c Conn, rect *Rectangle) error {
 }
 
 func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelFormat, rect *Rectangle, r Conn) {
+
 	var STREAM_ID_MASK uint8 = 0x30
 	var FILTER_ID_MASK uint8 = 0x40
 
@@ -304,8 +318,9 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 			return
 		}
 		//logger.Errorf("handleTightFilters: got tight data: %v", tightBytes)
-
-		enc.drawTightPalette(rect, palette, tightBytes)
+		if !disablePalette {
+			enc.drawTightPalette(rect, palette, tightBytes)
+		}
 		//enc.Image = myImg
 	case TightFilterGradient: //GRADIENT_FILTER
 		logger.Debugf("----GRADIENT_FILTER: bytesPixel=%d, counter=%d", bytesPixel, counter)
@@ -315,6 +330,7 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 			logger.Errorf("handleTightFilters: error in handling tight encoding, Reading GRADIENT_FILTER: %v", err)
 			return
 		}
+
 		enc.decodeGradData(rect, data)
 
 	case TightFilterCopy: //BASIC_FILTER
@@ -327,7 +343,9 @@ func (enc *TightEncoding) handleTightFilters(compCtl uint8, pixelFmt *PixelForma
 			return
 		}
 		logger.Tracef("tightBytes len= %d", len(tightBytes))
-		enc.drawTightBytes(tightBytes, rect)
+		if !disableCopy {
+			enc.drawTightBytes(tightBytes, rect)
+		}
 	default:
 		logger.Errorf("handleTightFilters: Bad tight filter id: %d", filterid)
 		return
@@ -425,7 +443,9 @@ func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
 
 		for idx := 3; idx < (len(thisRow) - 3); idx += 3 {
 			myColor := color.RGBA{R: (thisRow[idx]), G: (thisRow[idx+1]), B: (thisRow[idx+2]), A: 1}
-			enc.Image.Set(idx/3+int(rect.X)-1, int(rect.Y)+i, myColor)
+			if !disableGradient {
+				enc.Image.Set(idx/3+int(rect.X)-1, int(rect.Y)+i, myColor)
+			}
 			//logger.Tracef("putting pixel: idx=%d, pos=(%d,%d), col=%v", idx, idx/3+int(rect.X), int(rect.Y)+i, myColor)
 
 		}
@@ -530,7 +550,7 @@ func (enc *TightEncoding) readTightPalette(connReader Conn, bytesPixel int) (col
 
 func (enc *TightEncoding) ReadTightData(dataSize int, c Conn, decoderId int) ([]byte, error) {
 
-	logger.Tracef(">>> Reading zipped tight data from decoder: %d", decoderId)
+	logger.Tracef(">>> Reading zipped tight data from decoder Id: %d, openSize: %d", decoderId, dataSize)
 	if int(dataSize) < TightMinToCompress {
 		return ReadBytes(int(dataSize), c)
 	}

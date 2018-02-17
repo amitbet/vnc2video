@@ -149,6 +149,7 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 
 	err := secType.Auth(c)
 	if err != nil {
+		logger.Error("Authentication error: ", err)
 		return err
 	}
 
@@ -290,7 +291,7 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 		c.SetHeight(srvInit.FBHeight)
 
 		//telling the server to use 32bit pixels (with 24 dept, tight standard format)
-		pixelMsg:=SetPixelFormat{PF: PixelFormat32bit}
+		pixelMsg := SetPixelFormat{PF: PixelFormat32bit}
 		pixelMsg.Write(c)
 		c.SetPixelFormat(PixelFormat32bit)
 		//c.SetPixelFormat(srvInit.PixelFormat)

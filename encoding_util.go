@@ -139,6 +139,15 @@ func Min(a, b int) int {
 	return b
 }
 
+func DrawImage(target draw.Image, imageToApply image.Image, pos image.Point) {
+	rect := imageToApply.Bounds()
+	for x := rect.Min.X; x < rect.Max.X; x++ {
+		for y := rect.Min.Y; y < rect.Max.Y; y++ {
+			target.Set(x+pos.X, y+pos.Y, imageToApply.At(x, y))
+		}
+	}
+}
+
 func FillRect(img draw.Image, rect *image.Rectangle, c color.Color) {
 	for x := rect.Min.X; x < rect.Max.X; x++ {
 		for y := rect.Min.Y; y < rect.Max.Y; y++ {

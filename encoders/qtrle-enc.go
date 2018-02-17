@@ -85,8 +85,12 @@ func (enc *QTRLEImageEncoder) Init(videoFileName string) {
 }
 func (enc *QTRLEImageEncoder) Run(videoFileName string) error {
 	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
-		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
-		return errors.New("encoder file doesn't exist in path" + videoFileName)
+		if _, err := os.Stat(enc.FFMpegBinPath + ".exe"); os.IsNotExist(err) {
+			logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
+			return errors.New("encoder file doesn't exist in path" + videoFileName)
+		} else {
+			enc.FFMpegBinPath = enc.FFMpegBinPath + ".exe"
+		}
 	}
 
 	enc.Init(videoFileName)

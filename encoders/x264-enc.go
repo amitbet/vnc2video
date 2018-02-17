@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"vnc2video/logger"
 )
@@ -31,7 +32,7 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "12",
+		"-r", strconv.Itoa(enc.Framerate),
 
 		//"-re",
 		//"-i", "pipe:0",
@@ -53,15 +54,15 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 		// "-an", "-f", "webm",
 		"-preset", "veryfast",
 		//"-tune", "animation",
-		"-maxrate", "0.5M",
-		"-bufsize", "50M",
+		// "-maxrate", "0.5M",
+		// "-bufsize", "50M",
 		"-g", "250",
 
 		//"-crf", "0", //for lossless encoding!!!!
 
 		//"-rc_lookahead", "16",
 		//"-profile", "0",
-		"-crf", "34",
+		"-crf", "37",
 		//"-qmax", "51",
 		//"-qmin", "7",
 		//"-slices", "4",
@@ -84,8 +85,12 @@ func (enc *X264ImageEncoder) Init(videoFileName string) {
 }
 func (enc *X264ImageEncoder) Run(videoFileName string) error {
 	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
-		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
-		return errors.New("encoder file doesn't exist in path" + videoFileName)
+		if _, err := os.Stat(enc.FFMpegBinPath + ".exe"); os.IsNotExist(err) {
+			logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
+			return errors.New("encoder file doesn't exist in path" + videoFileName)
+		} else {
+			enc.FFMpegBinPath = enc.FFMpegBinPath + ".exe"
+		}
 	}
 
 	enc.Init(videoFileName)

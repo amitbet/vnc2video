@@ -154,7 +154,7 @@ func (fbs *FbsReader) ReadSegment() (*FbsSegment, error) {
 	//read length
 	err := binary.Read(reader, binary.BigEndian, &bytesLen)
 	if err != nil {
-		logger.Error("FbsReader.ReadStartSession: read len, error reading rbs file: ", err)
+		logger.Error("FbsReader.ReadSegment: reading len, error reading rbs file: ", err)
 		return nil, err
 	}
 
@@ -164,7 +164,7 @@ func (fbs *FbsReader) ReadSegment() (*FbsSegment, error) {
 	bytes := make([]byte, paddedSize)
 	_, err = reader.Read(bytes)
 	if err != nil {
-		logger.Error("FbsReader.ReadSegment: read bytes, error reading rbs file: ", err)
+		logger.Error("FbsReader.ReadSegment: reading bytes, error reading rbs file: ", err)
 		return nil, err
 	}
 
