@@ -35,8 +35,9 @@ func main() {
 	ccfg := &vnc.ClientConfig{
 		SecurityHandlers: []vnc.SecurityHandler{
 			//&vnc.ClientAuthATEN{Username: []byte(os.Args[2]), Password: []byte(os.Args[3])}
-			&vnc.ClientAuthVNC{Password: []byte("12345")},
-			&vnc.ClientAuthNone{},
+			// &vnc.ClientAuthVNC{Password: []byte("12345")},
+			// &vnc.ClientAuthNone{},
+			&vnc.ClientAuthUltraMsAutoLogon2{Username: []byte(os.Args[2]), Password: []byte(os.Args[3])},
 		},
 		DrawCursor:      true,
 		PixelFormat:     vnc.PixelFormat32bit,
