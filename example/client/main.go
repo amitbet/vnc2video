@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -12,7 +11,7 @@ import (
 	"time"
 	vnc "vnc2video"
 	"vnc2video/encoders"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -23,10 +22,10 @@ func main() {
 	// Establish TCP connection to VNC server.
 	nc, err := net.DialTimeout("tcp", os.Args[1], 5*time.Second)
 	if err != nil {
-		logger.Fatalf("Error connecting to VNC host. %v", err)
+		log.Fatalf("Error connecting to VNC host. %v", err)
 	}
 
-	logger.Tracef("starting up the client, connecting to: %s", os.Args[1])
+	log.Debugf("starting up the client, connecting to: %s", os.Args[1])
 	// Negotiate connection with the server.
 	cchServer := make(chan vnc.ServerMessage)
 	cchClient := make(chan vnc.ClientMessage)
@@ -60,7 +59,7 @@ func main() {
 	cc, err := vnc.Connect(context.Background(), nc, ccfg)
 	screenImage := cc.Canvas
 	if err != nil {
-		logger.Fatalf("Error negotiating connection to VNC host. %v", err)
+		log.Fatalf("Error negotiating connection to VNC host. %v", err)
 	}
 	// out, err := os.Create("./output" + strconv.Itoa(counter) + ".jpg")
 	// if err != nil {
@@ -95,7 +94,7 @@ func main() {
 	}
 	// var out *os.File
 
-	logger.Tracef("connected to: %s", os.Args[1])
+	log.Debugf("connected to: %s", os.Args[1])
 	defer cc.Close()
 
 	cc.SetEncodings([]vnc.EncodingType{
@@ -150,7 +149,7 @@ func main() {
 		case err := <-errorCh:
 			panic(err)
 		case msg := <-cchClient:
-			logger.Tracef("Received client message type:%v msg:%v\n", msg.Type(), msg)
+			log.Debugf("Received client message type:%v msg:%v\n", msg.Type(), msg)
 		case msg := <-cchServer:
 			//logger.Tracef("Received server message type:%v msg:%v\n", msg.Type(), msg)
 
@@ -167,7 +166,7 @@ func main() {
 				//counter++
 				//jpeg.Encode(out, screenImage, nil)
 				///vcodec.Encode(screenImage)
-				logger.Infof("reqs=%d, seconds=%f, Req Per second= %f", frameBufferReq, secsPassed, reqPerSec)
+				log.Infof("reqs=%d, seconds=%f, Req Per second= %f", frameBufferReq, secsPassed, reqPerSec)
 
 				reqMsg := vnc.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: cc.Width(), Height: cc.Height()}
 				//cc.ResetAllEncodings()

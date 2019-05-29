@@ -2,10 +2,10 @@ package vnc2video
 
 import (
 	"encoding/binary"
+	log "github.com/sirupsen/logrus"
 	"image"
 	"image/color"
 	"image/draw"
-	"vnc2video/logger"
 )
 
 type CursorPseudoEncoding struct {
@@ -29,7 +29,7 @@ func (enc *CursorPseudoEncoding) Reset() error {
 func (*CursorPseudoEncoding) Type() EncodingType { return EncCursorPseudo }
 
 func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
-	logger.Tracef("CursorPseudoEncoding.Read: got rect: %v", rect)
+	log.Debugf("CursorPseudoEncoding.Read: got rect: %v", rect)
 	//rgba := make([]byte, int(rect.Height)*int(rect.Width)*int(c.PixelFormat().BPP/8))
 	numColors := int(rect.Height) * int(rect.Width)
 	colors := make([]color.Color, numColors)
@@ -67,7 +67,7 @@ func (enc *CursorPseudoEncoding) Read(c Conn, rect *Rectangle) error {
 				cursorImg.Set(x, y, colors[offset])
 				//cursorMask.Set(x, y, color.RGBA{1, 1, 1, 1})
 				cursorMask[x][y] = true
-				//logger.Tracef("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+				//log.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
 			}
 		}
 	}

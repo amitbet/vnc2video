@@ -1,9 +1,9 @@
 package vnc2video
 
 import (
+	log "github.com/sirupsen/logrus"
 	"image"
 	"image/draw"
-	"vnc2video/logger"
 )
 
 type CursorPosPseudoEncoding struct {
@@ -28,7 +28,7 @@ func (enc *CursorPosPseudoEncoding) Reset() error {
 func (*CursorPosPseudoEncoding) Type() EncodingType { return EncPointerPosPseudo }
 
 func (enc *CursorPosPseudoEncoding) Read(c Conn, rect *Rectangle) error {
-	logger.Tracef("CursorPosPseudoEncoding: got cursot pos update: %v", rect)
+	log.Debugf("CursorPosPseudoEncoding: got cursot pos update: %v", rect)
 	canvas := enc.Image.(*VncCanvas)
 	canvas.CursorLocation = &image.Point{X: int(rect.X), Y: int(rect.Y)}
 	return nil

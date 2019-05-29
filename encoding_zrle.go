@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"compress/zlib"
 	"errors"
+	log "github.com/sirupsen/logrus"
 	"image/color"
 	"image/draw"
 	"io"
-	"vnc2video/logger"
 )
 
 type ZRLEEncoding struct {
@@ -57,7 +57,7 @@ func CalcBytesPerCPixel(pf *PixelFormat) int {
 }
 
 func (enc *ZRLEEncoding) Read(r Conn, rect *Rectangle) error {
-	logger.Tracef("reading ZRLE:%v\n", rect)
+	log.Debugf("reading ZRLE:%v\n", rect)
 	len, err := ReadUint32(r)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (enc *ZRLEEncoding) readZRLERaw(reader io.Reader, pf *PixelFormat, tx, ty, 
 }
 
 func (enc *ZRLEEncoding) renderZRLE(rect *Rectangle, pf *PixelFormat) error {
-	logger.Trace("-----renderZRLE: rendering rect:", rect)
+	log.Debugf("-----renderZRLE: rendering rect:", rect)
 	for tileOffsetY := 0; tileOffsetY < int(rect.Height); tileOffsetY += 64 {
 
 		tileHeight := Min(64, int(rect.Height)-tileOffsetY)
@@ -111,9 +111,9 @@ func (enc *ZRLEEncoding) renderZRLE(rect *Rectangle, pf *PixelFormat) error {
 			tileWidth := Min(64, int(rect.Width)-tileOffsetX)
 			// read subencoding
 			subEnc, err := ReadUint8(enc.unzipper)
-			logger.Tracef("-----renderZRLE: rendering got tile:(%d,%d) w:%d, h:%d subEnc:%d", tileOffsetX, tileOffsetY, tileWidth, tileHeight, subEnc)
+			log.Debugf("-----renderZRLE: rendering got tile:(%d,%d) w:%d, h:%d subEnc:%d", tileOffsetX, tileOffsetY, tileWidth, tileHeight, subEnc)
 			if err != nil {
-				logger.Errorf("renderZRLE: error while reading subencoding: %v", err)
+				log.Errorf("renderZRLE: error while reading subencoding: %v", err)
 				return err
 			}
 
@@ -123,14 +123,14 @@ func (enc *ZRLEEncoding) renderZRLE(rect *Rectangle, pf *PixelFormat) error {
 				// Raw subencoding: read cpixels and paint
 				err = enc.readZRLERaw(enc.unzipper, pf, int(rect.X)+tileOffsetX, int(rect.Y)+tileOffsetY, tileWidth, tileHeight)
 				if err != nil {
-					logger.Errorf("renderZRLE: error while reading Raw tile: %v", err)
+					log.Errorf("renderZRLE: error while reading Raw tile: %v", err)
 					return err
 				}
 			case subEnc == 1:
 				// background color tile - just fill
 				color, err := readCPixel(enc.unzipper, pf)
 				if err != nil {
-					logger.Errorf("renderZRLE: error while reading CPixel for bgColor tile: %v", err)
+					log.Errorf("renderZRLE: error while reading CPixel for bgColor tile: %v", err)
 					return err
 				}
 				myRect := MakeRect(int(rect.X)+tileOffsetX, int(rect.Y)+tileOffsetY, tileWidth, tileHeight)
@@ -151,7 +151,7 @@ func (enc *ZRLEEncoding) renderZRLE(rect *Rectangle, pf *PixelFormat) error {
 					return err
 				}
 			default:
-				logger.Errorf("Unknown ZRLE subencoding: %v", subEnc)
+				log.Errorf("Unknown ZRLE subencoding: %v", subEnc)
 			}
 		}
 	}
@@ -168,7 +168,7 @@ func (enc *ZRLEEncoding) handlePaletteRLETile(tileOffsetX, tileOffsetY, tileWidt
 	for j := 0; j < int(paletteSize); j++ {
 		palette[j], err = readCPixel(enc.unzipper, pf)
 		if err != nil {
-			logger.Errorf("renderZRLE: error while reading color in palette RLE subencoding: %v", err)
+			log.Errorf("renderZRLE: error while reading color in palette RLE subencoding: %v", err)
 			return err
 		}
 	}
@@ -182,7 +182,7 @@ func (enc *ZRLEEncoding) handlePaletteRLETile(tileOffsetX, tileOffsetY, tileWidt
 				// Read length and index
 				index, err = ReadUint8(enc.unzipper)
 				if err != nil {
-					logger.Errorf("renderZRLE: error while reading length and index in palette RLE subencoding: %v", err)
+					log.Errorf("renderZRLE: error while reading length and index in palette RLE subencoding: %v", err)
 					//return err
 				}
 				runLen = 1
@@ -195,12 +195,12 @@ func (enc *ZRLEEncoding) handlePaletteRLETile(tileOffsetX, tileOffsetY, tileWidt
 
 					runLen, err = readRunLength(enc.unzipper)
 					if err != nil {
-						logger.Errorf("handlePlainRLETile: error while reading runlength in plain RLE subencoding: %v", err)
+						log.Errorf("handlePlainRLETile: error while reading runlength in plain RLE subencoding: %v", err)
 						return err
 					}
 
 				}
-				//logger.Tracef("renderZRLE: writing pixel: col=%v times=%d", palette[index], runLen)
+				//log.Debugf("renderZRLE: writing pixel: col=%v times=%d", palette[index], runLen)
 			}
 
 			// Write pixel to image
@@ -220,7 +220,7 @@ func (enc *ZRLEEncoding) handlePaletteTile(tileOffsetX, tileOffsetY, tileWidth, 
 	for j := 0; j < int(paletteSize); j++ {
 		palette[j], err = readCPixel(enc.unzipper, pf)
 		if err != nil {
-			logger.Errorf("renderZRLE: error while reading CPixel for palette tile: %v", err)
+			log.Errorf("renderZRLE: error while reading CPixel for palette tile: %v", err)
 			return err
 		}
 	}
@@ -248,7 +248,7 @@ func (enc *ZRLEEncoding) handlePaletteTile(tileOffsetX, tileOffsetY, tileWidth, 
 			if bitsAvailable == 0 {
 				bits, err := ReadUint8(enc.unzipper)
 				if err != nil {
-					logger.Errorf("renderZRLE: error while reading first uint8 into buffer: %v", err)
+					log.Errorf("renderZRLE: error while reading first uint8 into buffer: %v", err)
 					return err
 				}
 				buffer = uint32(bits)
@@ -279,12 +279,12 @@ func (enc *ZRLEEncoding) handlePlainRLETile(tileOffsetX int, tileOffsetY int, ti
 				// Read length and color
 				col, err = readCPixel(enc.unzipper, pf)
 				if err != nil {
-					logger.Errorf("handlePlainRLETile: error while reading CPixel in plain RLE subencoding: %v", err)
+					log.Errorf("handlePlainRLETile: error while reading CPixel in plain RLE subencoding: %v", err)
 					return err
 				}
 				runLen, err = readRunLength(enc.unzipper)
 				if err != nil {
-					logger.Errorf("handlePlainRLETile: error while reading runlength in plain RLE subencoding: %v", err)
+					log.Errorf("handlePlainRLETile: error while reading runlength in plain RLE subencoding: %v", err)
 					return err
 				}
 
@@ -303,7 +303,7 @@ func readRunLength(r io.Reader) (int, error) {
 
 	addition, err := ReadUint8(r)
 	if err != nil {
-		logger.Errorf("renderZRLE: error while reading addition to runLen in plain RLE subencoding: %v", err)
+		log.Errorf("renderZRLE: error while reading addition to runLen in plain RLE subencoding: %v", err)
 		return 0, err
 	}
 	runLen += int(addition)
@@ -311,7 +311,7 @@ func readRunLength(r io.Reader) (int, error) {
 	for addition == 255 {
 		addition, err = ReadUint8(r)
 		if err != nil {
-			logger.Errorf("renderZRLE: error while reading addition to runLen in-loop plain RLE subencoding: %v", err)
+			log.Errorf("renderZRLE: error while reading addition to runLen in-loop plain RLE subencoding: %v", err)
 			return 0, err
 		}
 		runLen += int(addition)
@@ -353,7 +353,7 @@ func readCPixel(c io.Reader, pf *PixelFormat) (*color.RGBA, error) {
 
 	col, err := ReadColor(c, pf)
 	if err != nil {
-		logger.Errorf("readCPixel: Error while reading zrle: %v", err)
+		log.Errorf("readCPixel: Error while reading zrle: %v", err)
 	}
 
 	return col, nil

@@ -3,7 +3,7 @@ package vnc2video
 import (
 	"encoding/binary"
 	"fmt"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 // Handler represents handler of handshake
@@ -149,7 +149,7 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 
 	err := secType.Auth(c)
 	if err != nil {
-		logger.Error("Authentication error: ", err)
+		log.Error("Authentication error: ", err)
 		return err
 	}
 
@@ -158,7 +158,7 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 		return err
 	}
 
-	logger.Tracef("authenticating, secType: %d, auth code(0=success): %d", secType.Type(), authCode)
+	log.Debugf("authenticating, secType: %d, auth code(0=success): %d", secType.Type(), authCode)
 	if authCode == 1 {
 		var reasonLength uint32
 		if err := binary.Read(c, binary.BigEndian, &reasonLength); err != nil {
@@ -259,7 +259,7 @@ type DefaultClientServerInitHandler struct{}
 
 // Handle provide default server init handler
 func (*DefaultClientServerInitHandler) Handle(c Conn) error {
-	logger.Trace("starting DefaultClientServerInitHandler")
+	log.Debug("starting DefaultClientServerInitHandler")
 	var err error
 	srvInit := ServerInit{}
 
@@ -280,7 +280,7 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	if err = binary.Read(c, binary.BigEndian, &srvInit.NameText); err != nil {
 		return err
 	}
-	logger.Tracef("DefaultClientServerInitHandler got serverInit: %v", srvInit)
+	log.Debugf("DefaultClientServerInitHandler got serverInit: %v", srvInit)
 	c.SetDesktopName(srvInit.NameText)
 	if c.Protocol() == "aten1" {
 		c.SetWidth(800)
@@ -376,7 +376,7 @@ type DefaultClientClientInitHandler struct{}
 
 // Handle provide default client client init handler
 func (*DefaultClientClientInitHandler) Handle(c Conn) error {
-	logger.Trace("starting DefaultClientClientInitHandler")
+	log.Debugf("starting DefaultClientClientInitHandler")
 	cfg := c.Config().(*ClientConfig)
 	var shared uint8
 	if cfg.Exclusive {
@@ -387,7 +387,7 @@ func (*DefaultClientClientInitHandler) Handle(c Conn) error {
 	if err := binary.Write(c, binary.BigEndian, shared); err != nil {
 		return err
 	}
-	logger.Tracef("DefaultClientClientInitHandler sending: shared=%d", shared)
+	log.Debugf("DefaultClientClientInitHandler sending: shared=%d", shared)
 	return c.Flush()
 }
 

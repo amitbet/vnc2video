@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/png"
 	"io"
-	"vnc2video/logger"
 )
 
 func (*TightPngEncoding) Supported(Conn) bool {
@@ -65,7 +65,7 @@ func (*TightPngEncoding) Type() EncodingType { return EncTightPng }
 
 func (enc *TightPngEncoding) Read(c Conn, rect *Rectangle) error {
 	tcc, err := readTightCC(c)
-	logger.Trace("starting to read a tight rect: %v", rect)
+	log.Debugf("starting to read a tight rect: %v", rect)
 	if err != nil {
 		return err
 	}

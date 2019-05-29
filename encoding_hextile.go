@@ -1,11 +1,11 @@
 package vnc2video
 
 import (
+	log "github.com/sirupsen/logrus"
 	"image"
 	"image/color"
 	"image/draw"
 	"io"
-	"vnc2video/logger"
 )
 
 const (
@@ -62,7 +62,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 	// defer func() {
 	// 	z.bytes = r.EndByteCollection()
 	// }()
-	logger.Tracef("HextileEncoding.Read: got hextile rect: %v", rect)
+	log.Debugf("HextileEncoding.Read: got hextile rect: %v", rect)
 	for ty := rect.Y; ty < rect.Y+rect.Height; ty += 16 {
 		th := 16
 		if rect.Y+rect.Height-ty < 16 {
@@ -79,7 +79,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 			subencoding, err = ReadUint8(r)
 
 			if err != nil {
-				logger.Errorf("HextileEncoding.Read: error in hextile reader: %v", err)
+				log.Errorf("HextileEncoding.Read: error in hextile reader: %v", err)
 				return err
 			}
 
@@ -94,25 +94,25 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 
 				bgCol, err = ReadColor(r, &pf)
 				if err != nil {
-					logger.Errorf("HextileEncoding.Read: error in hextile bg color reader: %v", err)
+					log.Errorf("HextileEncoding.Read: error in hextile bg color reader: %v", err)
 					return err
 				}
 
-				//logger.Tracef("%v %v", rBounds, bgCol)
+				//log.Debugf("%v %v", rBounds, bgCol)
 			}
 			rBounds := image.Rectangle{Min: image.Point{int(tx), int(ty)}, Max: image.Point{int(tx) + int(tw), int(ty) + int(th)}}
-			//logger.Tracef("filling background rect: %v, col: %v", rBounds, bgCol)
+			//log.Debugf("filling background rect: %v, col: %v", rBounds, bgCol)
 			FillRect(z.Image, &rBounds, bgCol)
 
 			if (subencoding & HextileForegroundSpecified) != 0 {
 				fgCol, err = ReadColor(r, &pf)
 				if err != nil {
-					logger.Errorf("HextileEncoding.Read: error in hextile fg color reader: %v", err)
+					log.Errorf("HextileEncoding.Read: error in hextile fg color reader: %v", err)
 					return err
 				}
 			}
 			if (subencoding & HextileAnySubrects) == 0 {
-				//logger.Trace("hextile reader: no Subrects")
+				//log.Trace("hextile reader: no Subrects")
 				continue
 			}
 
@@ -127,7 +127,7 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 				if colorSpecified {
 					color, err = ReadColor(r, &pf)
 					if err != nil {
-						logger.Error("HextileEncoding.Read: problem reading color from connection: ", err)
+						log.Error("HextileEncoding.Read: problem reading color from connection: ", err)
 						return err
 					}
 				} else {
@@ -137,21 +137,21 @@ func (z *HextileEncoding) Read(r Conn, rect *Rectangle) error {
 				fgCol = color
 				dimensions, err = ReadUint8(r) // bits 7-4 for x, bits 3-0 for y
 				if err != nil {
-					logger.Error("HextileEncoding.Read: problem reading dimensions from connection: ", err)
+					log.Error("HextileEncoding.Read: problem reading dimensions from connection: ", err)
 					return err
 				}
 				subtileX := dimensions >> 4 & 0x0f
 				subtileY := dimensions & 0x0f
 				dimensions, err = ReadUint8(r) // bits 7-4 for w, bits 3-0 for h
 				if err != nil {
-					logger.Error("HextileEncoding.Read: problem reading 2nd dimensions from connection: ", err)
+					log.Error("HextileEncoding.Read: problem reading 2nd dimensions from connection: ", err)
 					return err
 				}
 				subtileWidth := 1 + (dimensions >> 4 & 0x0f)
 				subtileHeight := 1 + (dimensions & 0x0f)
 				subrectBounds := image.Rectangle{Min: image.Point{int(tx) + int(subtileX), int(ty) + int(subtileY)}, Max: image.Point{int(tx) + int(subtileX) + int(subtileWidth), int(ty) + int(subtileY) + int(subtileHeight)}}
 				FillRect(z.Image, &subrectBounds, color)
-				//logger.Tracef("%v", subrectBounds)
+				//log.Debugf("%v", subrectBounds)
 			}
 		}
 	}

@@ -8,13 +8,13 @@ import (
 	"net"
 	"time"
 	vnc "vnc2video"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	ln, err := net.Listen("tcp", ":5900")
 	if err != nil {
-		logger.Fatalf("Error listen. %v", err)
+		log.Fatalf("Error listen. %v", err)
 	}
 
 	chServer := make(chan vnc.ClientMessage)
@@ -50,12 +50,12 @@ func main() {
 		case msg := <-chClient:
 			switch msg.Type() {
 			default:
-				logger.Tracef("11 Received message type:%v msg:%v\n", msg.Type(), msg)
+				log.Debugf("11 Received message type:%v msg:%v\n", msg.Type(), msg)
 			}
 		case msg := <-chServer:
 			switch msg.Type() {
 			default:
-				logger.Tracef("22 Received message type:%v msg:%v\n", msg.Type(), msg)
+				log.Debugf("22 Received message type:%v msg:%v\n", msg.Type(), msg)
 			}
 		}
 	}

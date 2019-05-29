@@ -2,8 +2,8 @@ package vnc2video
 
 import (
 	"encoding/binary"
+	log "github.com/sirupsen/logrus"
 	"net"
-	"vnc2video/logger"
 
 	"io"
 	"time"
@@ -112,14 +112,14 @@ func NewFbsConn(filename string, encs []Encoding) (*FbsConn, error) {
 
 	fbs, err := NewFbsReader(filename)
 	if err != nil {
-		logger.Error("failed to open fbs reader:", err)
+		log.Error("failed to open fbs reader:", err)
 		return nil, err
 	}
 
 	//NewFbsReader("/Users/amitbet/vncRec/recording.rbs")
 	initMsg, err := fbs.ReadStartSession()
 	if err != nil {
-		logger.Error("failed to open read fbs start session:", err)
+		log.Error("failed to open read fbs start session:", err)
 		return nil, err
 	}
 	fbsConn := &FbsConn{FbsReader: *fbs}
@@ -150,7 +150,7 @@ func NewFBSPlayHelper(r *FbsConn) *FBSPlayHelper {
 // 	switch seg.SegmentType {
 // 	case SegmentFullyParsedClientMessage:
 // 		clientMsg := seg.Message.(ClientMessage)
-// 		logger.Tracef("ClientUpdater.Consume:(vnc-server-bound) got ClientMessage type=%s", clientMsg.Type())
+// 		log.Debugf("ClientUpdater.Consume:(vnc-server-bound) got ClientMessage type=%s", clientMsg.Type())
 // 		switch clientMsg.Type() {
 
 // 		case FramebufferUpdateRequestMsgType:
@@ -172,7 +172,7 @@ func (h *FBSPlayHelper) ReadFbsMessage(SyncWithTimestamps bool, SpeedFactor floa
 	//conn := h.Conn
 	err := binary.Read(fbs, binary.BigEndian, &messageType)
 	if err != nil {
-		logger.Error("FBSConn.NewConnHandler: Error in reading FBS: ", err)
+		log.Error("FBSConn.NewConnHandler: Error in reading FBS: ", err)
 		return nil, err
 	}
 	startTimeMsgHandling := time.Now()
@@ -180,14 +180,14 @@ func (h *FBSPlayHelper) ReadFbsMessage(SyncWithTimestamps bool, SpeedFactor floa
 	//binary.Write(h.Conn, binary.BigEndian, messageType)
 	msg := h.serverMessageMap[messageType]
 	if msg == nil {
-		logger.Error("FBSConn.NewConnHandler: Error unknown message type: ", messageType)
+		log.Error("FBSConn.NewConnHandler: Error unknown message type: ", messageType)
 		return nil, err
 	}
 	//read the actual message data
 	//err = binary.Read(fbs, binary.BigEndian, &msg)
 	parsedMsg, err := msg.Read(fbs)
 	if err != nil {
-		logger.Error("FBSConn.NewConnHandler: Error in reading FBS message: ", err)
+		log.Error("FBSConn.NewConnHandler: Error in reading FBS message: ", err)
 		return nil, err
 	}
 
@@ -199,7 +199,7 @@ func (h *FBSPlayHelper) ReadFbsMessage(SyncWithTimestamps bool, SpeedFactor floa
 
 		time.Sleep(time.Duration(millisToSleep) * time.Millisecond)
 	} else if millisToSleep < -450 {
-		logger.Errorf("rendering time is noticeably off, change speedup factor: videoTimeLine: %f, currentTime:%d, offset: %f", adjestedTimeStamp, millisSinceStart, millisToSleep)
+		log.Errorf("rendering time is noticeably off, change speedup factor: videoTimeLine: %f, currentTime:%d, offset: %f", adjestedTimeStamp, millisSinceStart, millisToSleep)
 	}
 
 	return parsedMsg, nil

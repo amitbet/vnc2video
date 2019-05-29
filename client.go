@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"sync"
-	"vnc2video/logger"
 )
 
 var (
@@ -36,7 +36,7 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 
 	for _, h := range cfg.Handlers {
 		if err := h.Handle(conn); err != nil {
-			logger.Error("Handshake failed, check that server is running: ", err)
+			log.Errorf("Handshake failed, check that server is running: ", err)
 			conn.Close()
 			cfg.ErrorCh <- err
 			return nil, err
@@ -257,7 +257,7 @@ type DefaultClientMessageHandler struct{}
 
 // Handle handles server messages.
 func (*DefaultClientMessageHandler) Handle(c Conn) error {
-	logger.Trace("starting DefaultClientMessageHandler")
+	log.Debug("starting DefaultClientMessageHandler")
 	cfg := c.Config().(*ClientConfig)
 	var err error
 	var wg sync.WaitGroup
@@ -292,7 +292,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 					cfg.ErrorCh <- err
 					return
 				}
-				logger.Infof("========got server message, msgType=%d", messageType)
+				log.Infof("========got server message, msgType=%d", messageType)
 				msg, ok := serverMessages[messageType]
 				if !ok {
 					err = fmt.Errorf("unknown message-type: %v", messageType)
@@ -304,7 +304,7 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 				parsedMsg, err := msg.Read(c)
 				canvas.PaintCursor()
 				//canvas.SwapBuffers()
-				logger.Debugf("============== End Message: type=%d ==============", messageType)
+				log.Debugf("============== End Message: type=%d ==============", messageType)
 
 				if err != nil {
 					cfg.ErrorCh <- err
@@ -325,11 +325,11 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 	for _, value := range encTypes {
 		v = append(v, value)
 	}
-	logger.Tracef("setting encodings: %v", v)
+	log.Debugf("setting encodings: %v", v)
 	c.SetEncodings(v)
 
 	firstMsg := FramebufferUpdateRequest{Inc: 0, X: 0, Y: 0, Width: c.Width(), Height: c.Height()}
-	logger.Tracef("sending initial req message: %v", firstMsg)
+	log.Debugf("sending initial req message: %v", firstMsg)
 	firstMsg.Write(c)
 
 	//wg.Wait()

@@ -2,9 +2,9 @@ package vnc2video
 
 import (
 	"encoding/binary"
+	log "github.com/sirupsen/logrus"
 	"image"
 	"image/draw"
-	"vnc2video/logger"
 )
 
 type CopyRectEncoding struct {
@@ -21,12 +21,12 @@ func (*CopyRectEncoding) Reset() error {
 func (*CopyRectEncoding) Type() EncodingType { return EncCopyRect }
 
 func (enc *CopyRectEncoding) SetTargetImage(img draw.Image) {
-	//logger.Tracef("!!!!!!!!!!!!!setting image: %v", img.Bounds())
+	//log.Debugf("!!!!!!!!!!!!!setting image: %v", img.Bounds())
 	enc.Image = img
 }
 
 func (enc *CopyRectEncoding) Read(c Conn, rect *Rectangle) error {
-	logger.Tracef("Reading: CopyRect %v", rect)
+	log.Debugf("Reading: CopyRect %v", rect)
 	if err := binary.Read(c, binary.BigEndian, &enc.SX); err != nil {
 		return err
 	}

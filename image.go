@@ -3,8 +3,8 @@ package vnc2video
 import (
 	"encoding/binary"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"image"
-	"vnc2video/logger"
 )
 
 //var _ draw.Drawer = (*ServerConn)(nil)
@@ -167,7 +167,7 @@ func (rect *Rectangle) Read(c Conn) error {
 	if err = binary.Read(c, binary.BigEndian, &rect.EncType); err != nil {
 		return err
 	}
-	logger.Debug(rect)
+	log.Debug(rect)
 	switch rect.EncType {
 	// case EncCopyRect:
 	// 	rect.Enc = &CopyRectEncoding{}

@@ -6,7 +6,7 @@ import (
 	"time"
 	vnc "vnc2video"
 	"vnc2video/encoders"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -15,11 +15,11 @@ func main() {
 	fastFramerate := int(float64(framerate) * speedupFactor)
 
 	if len(os.Args) <= 1 {
-		logger.Errorf("please provide a fbs file name")
+		log.Errorf("please provide a fbs file name")
 		return
 	}
 	if _, err := os.Stat(os.Args[1]); os.IsNotExist(err) {
-		logger.Errorf("File doesn't exist", err)
+		log.Errorf("File doesn't exist", err)
 		return
 	}
 	encs := []vnc.Encoding{
@@ -34,7 +34,7 @@ func main() {
 		encs,
 	)
 	if err != nil {
-		logger.Error("failed to open fbs reader:", err)
+		log.Error("failed to open fbs reader:", err)
 		//return nil, err
 	}
 
@@ -43,7 +43,7 @@ func main() {
 	//vcodec := &encoders.DV8ImageEncoder{}
 	//vcodec := &encoders.DV9ImageEncoder{}
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	logger.Tracef("current dir: %s", dir)
+	log.Debugf("current dir: %s", dir)
 	go vcodec.Run("./output.mp4")
 
 	//screenImage := image.NewRGBA(image.Rect(0, 0, int(fbs.Width()), int(fbs.Height())))

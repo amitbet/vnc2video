@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 	vnc "vnc2video"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 type Auth struct {
@@ -189,7 +189,7 @@ func (auth *AuthVNCHTTP) Auth(c vnc.Conn) error {
 	if err != nil {
 		return fmt.Errorf("failed to get auth data: %s", err.Error())
 	}
-	logger.Debugf("http auth: %s\n", buf.Bytes())
+	log.Debugf("http auth: %s\n", buf.Bytes())
 	res.Body.Close()
 	data := strings.Split(buf.String(), " ")
 	if len(data) < 2 {
@@ -223,12 +223,12 @@ func (*AuthVNCHTTP) SubType() vnc.SecuritySubType {
 
 func main() {
 	go func() {
-		logger.Info(http.ListenAndServe(":6060", nil))
+		log.Info(http.ListenAndServe(":6060", nil))
 	}()
 
 	ln, err := net.Listen("tcp", ":6900")
 	if err != nil {
-		logger.Fatalf("Error listen. %v", err)
+		log.Fatalf("Error listen. %v", err)
 	}
 
 	schClient := make(chan vnc.ClientMessage)

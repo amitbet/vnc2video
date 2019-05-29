@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 // QTRLEImageEncoder quick time rle is an efficient loseless codec, uses .mov extension
@@ -79,14 +79,14 @@ func (enc *QTRLEImageEncoder) Init(videoFileName string) {
 	encInput, err := cmd.StdinPipe()
 	enc.input = encInput
 	if err != nil {
-		logger.Error("can't get ffmpeg input pipe")
+		log.Error("can't get ffmpeg input pipe")
 	}
 	enc.cmd = cmd
 }
 func (enc *QTRLEImageEncoder) Run(videoFileName string) error {
 	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
 		if _, err := os.Stat(enc.FFMpegBinPath + ".exe"); os.IsNotExist(err) {
-			logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
+			log.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 			return errors.New("encoder file doesn't exist in path" + videoFileName)
 		} else {
 			enc.FFMpegBinPath = enc.FFMpegBinPath + ".exe"
@@ -94,10 +94,10 @@ func (enc *QTRLEImageEncoder) Run(videoFileName string) error {
 	}
 
 	enc.Init(videoFileName)
-	logger.Debugf("launching binary: %v", enc.cmd)
+	log.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
 	if err != nil {
-		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
+		log.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
 		return err
 	}
 	return nil
@@ -109,7 +109,7 @@ func (enc *QTRLEImageEncoder) Encode(img image.Image) {
 
 	err := encodePPM(enc.input, img)
 	if err != nil {
-		logger.Error("error while encoding image:", err)
+		log.Error("error while encoding image:", err)
 	}
 }
 

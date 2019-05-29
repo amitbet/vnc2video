@@ -74,12 +74,12 @@ func (c *VncCanvas) RemoveCursor() image.Image {
 			col := c.CursorBackup.At(x, y)
 			//mask := c.CursorMask.At(x, y).(color.RGBA)
 			mask := c.CursorMask[x][y]
-			//logger.Info("Drawing Cursor: ", x, y, col, mask)
+			//log.Info("Drawing Cursor: ", x, y, col, mask)
 			if mask {
-				//logger.Info("Drawing Cursor for real: ", x, y, col)
+				//log.Info("Drawing Cursor for real: ", x, y, col)
 				img.Set(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y, col)
 			}
-			// 	//logger.Tracef("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+			// 	//log.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
 			// }
 		}
 	}
@@ -118,14 +118,14 @@ func (c *VncCanvas) PaintCursor() image.Image {
 			//c.CursorBackup.Set(x, y, backup)
 			//backup the previous data at this point
 
-			//logger.Info("Drawing Cursor: ", x, y, col, mask)
+			//log.Info("Drawing Cursor: ", x, y, col, mask)
 			if mask {
 
 				c.CursorBackup.Set(x, y, backup)
-				//logger.Info("Drawing Cursor for real: ", x, y, col)
+				//log.Info("Drawing Cursor for real: ", x, y, col)
 				img.Set(x+loc.X-c.CursorOffset.X, y+loc.Y-c.CursorOffset.Y, col)
 			}
-			// 	//logger.Tracef("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
+			// 	//log.Debugf("CursorPseudoEncoding.Read: setting pixel: (%d,%d) %v", x+int(rect.X), y+int(rect.Y), colors[offset])
 			// }
 		}
 	}

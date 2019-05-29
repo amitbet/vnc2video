@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 type DV9ImageEncoder struct {
@@ -67,27 +67,27 @@ func (enc *DV9ImageEncoder) Init(videoFileName string) {
 	encInput, err := cmd.StdinPipe()
 	enc.input = encInput
 	if err != nil {
-		logger.Error("can't get ffmpeg input pipe")
+		log.Error("can't get ffmpeg input pipe")
 	}
 	enc.cmd = cmd
 }
 func (enc *DV9ImageEncoder) Run(videoFileName string) {
 	if _, err := os.Stat(enc.FFMpegBinPath); os.IsNotExist(err) {
-		logger.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
+		log.Error("encoder file doesn't exist in path:", enc.FFMpegBinPath)
 		return
 	}
 
 	enc.Init(videoFileName)
-	logger.Debugf("launching binary: %v", enc.cmd)
+	log.Debugf("launching binary: %v", enc.cmd)
 	err := enc.cmd.Run()
 	if err != nil {
-		logger.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
+		log.Errorf("error while launching ffmpeg: %v\n err: %v", enc.cmd.Args, err)
 	}
 }
 func (enc *DV9ImageEncoder) Encode(img image.Image) {
 	err := encodePPM(enc.input, img)
 	if err != nil {
-		logger.Error("error while encoding image:", err)
+		log.Error("error while encoding image:", err)
 	}
 }
 func (enc *DV9ImageEncoder) Close() {
