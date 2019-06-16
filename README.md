@@ -1,4 +1,5 @@
-# A **real wold** implementation of vnc client for go
+# Vnc2Video [![CircleCI](https://circleci.com/gh/amitbet/vnc2video.svg?style=shield)](https://circleci.com/gh/amitbet/vnc2video) [![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/CircleCI-Public/circleci-demo-go/master/LICENSE.md)
+## A **real wold** implementation of vnc client for go 
 After searching the web for an vnc client in golang which is not a toy & support more than handshake + RAW encoding, I came up blank, so, I set out to write one myself.
 
 The video encoding part means that something can be viewed, and since I don't really feel like writing GTK UIs in 2018 (plus VNC viewers are a dime a dozen), a video file will do.
