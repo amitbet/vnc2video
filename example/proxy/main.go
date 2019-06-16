@@ -13,8 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	vnc "vnc2video"
-	"vnc2video/logger"
+	vnc "github.com/amitbet/vnc2video"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 type Auth struct {

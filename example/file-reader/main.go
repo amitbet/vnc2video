@@ -4,14 +4,14 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	vnc "vnc2video"
-	"vnc2video/encoders"
-	"vnc2video/logger"
+	vnc "github.com/amitbet/vnc2video"
+	"github.com/amitbet/vnc2video/encoders"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 func main() {
 	framerate := 10
-	speedupFactor := 3.6
+	speedupFactor := 3.0
 	fastFramerate := int(float64(framerate) * speedupFactor)
 
 	if len(os.Args) <= 1 {
@@ -59,7 +59,7 @@ func main() {
 	}
 
 	go func() {
-		frameMillis := (1000.0 / float64(fastFramerate)) - 2 //a couple of millis, adjusting for time lost in software commands
+		frameMillis := (1000.0 / float64(fastFramerate)) - 1 //a couple of millis, adjusting for time lost in software commands
 		frameDuration := time.Duration(frameMillis * float64(time.Millisecond))
 		//logger.Error("milis= ", frameMillis)
 

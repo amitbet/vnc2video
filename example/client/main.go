@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 	vnc "vnc2video"
-	"vnc2video/encoders"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/encoders"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 func main() {
