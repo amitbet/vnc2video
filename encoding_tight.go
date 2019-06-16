@@ -11,7 +11,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"io"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 //go:generate stringer -type=TightCompression

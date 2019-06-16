@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 // QTRLEImageEncoder quick time rle is an efficient loseless codec, uses .mov extension

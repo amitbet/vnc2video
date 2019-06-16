@@ -3,7 +3,7 @@ package vnc2video
 import (
 	"encoding/binary"
 	"fmt"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 // Handler represents handler of handshake

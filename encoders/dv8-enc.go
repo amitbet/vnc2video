@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 type VP8ImageEncoder struct {

@@ -3,7 +3,7 @@ package vnc2video
 import (
 	"encoding/binary"
 	"net"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 
 	"io"
 	"time"
@@ -198,7 +198,7 @@ func (h *FBSPlayHelper) ReadFbsMessage(SyncWithTimestamps bool, SpeedFactor floa
 	if millisToSleep > 0 && SyncWithTimestamps {
 
 		time.Sleep(time.Duration(millisToSleep) * time.Millisecond)
-	} else if millisToSleep < -450 {
+	} else if millisToSleep < -400 {
 		logger.Errorf("rendering time is noticeably off, change speedup factor: videoTimeLine: %f, currentTime:%d, offset: %f", adjestedTimeStamp, millisSinceStart, millisToSleep)
 	}
 

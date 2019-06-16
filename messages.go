@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 var (

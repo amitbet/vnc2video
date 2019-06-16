@@ -6,7 +6,7 @@ import (
 	"image"
 	"image/color"
 	"io"
-	"vnc2video"
+	"github.com/amitbet/vnc2video"
 )
 
 func encodePPMGeneric(w io.Writer, img image.Image) error {

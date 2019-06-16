@@ -9,7 +9,7 @@ import (
 	"image/draw"
 	"image/png"
 	"io"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 func (*TightPngEncoding) Supported(Conn) bool {

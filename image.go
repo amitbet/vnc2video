@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"vnc2video/logger"
+	"github.com/amitbet/vnc2video/logger"
 )
 
 //var _ draw.Drawer = (*ServerConn)(nil)
