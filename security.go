@@ -5,12 +5,13 @@ type SecurityType uint8
 //go:generate stringer -type=SecurityType
 
 const (
-	SecTypeUnknown  SecurityType = SecurityType(0)
-	SecTypeNone     SecurityType = SecurityType(1)
-	SecTypeVNC      SecurityType = SecurityType(2)
-	SecTypeTight    SecurityType = SecurityType(16)
-	SecTypeATEN     SecurityType = SecurityType(16)
-	SecTypeVeNCrypt SecurityType = SecurityType(19)
+	SecTypeUnknown           SecurityType = SecurityType(0)
+	SecTypeNone              SecurityType = SecurityType(1)
+	SecTypeVNC               SecurityType = SecurityType(2)
+	SecTypeTight             SecurityType = SecurityType(16)
+	SecTypeATEN              SecurityType = SecurityType(16)
+	SecTypeVeNCrypt          SecurityType = SecurityType(19)
+	SecTypeUltraMsAutoLogon2 SecurityType = SecurityType(113)
 )
 
 type SecuritySubType uint32
