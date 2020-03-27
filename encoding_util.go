@@ -58,7 +58,7 @@ func (c *VncCanvas) Reset(rect *Rectangle) {
 }
 
 func (c *VncCanvas) RemoveCursor() image.Image {
-	if c.Cursor == nil || c.CursorLocation == nil {
+	if c == nil || c.Cursor == nil || c.CursorLocation == nil {
 		return c.Image
 	}
 	if !c.DrawCursor {
