@@ -84,15 +84,6 @@ func main() {
 	//go vcodec.Run("C:\\Users\\betzalel\\Dropbox\\go\\src\\vnc2video\\example\\client\\ffmpeg.exe", "output.mp4")
 	//vcodec.Run("./output")
 
-	//screenImage := vnc.NewVncCanvas(int(cc.Width()), int(cc.Height()))
-
-	for _, enc := range ccfg.Encodings {
-		myRenderer, ok := enc.(vnc.Renderer)
-
-		if ok {
-			myRenderer.SetTargetImage(screenImage)
-		}
-	}
 	// var out *os.File
 
 	logger.Tracef("connected to: %s", os.Args[1])
