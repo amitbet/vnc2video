@@ -345,6 +345,21 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 		//		return err
 		//	}
 	}*/
+
+	// set up canvas and init renderer before other
+	cfg := c.Config().(*ClientConfig)
+	canvas := NewVncCanvas(int(c.Width()), int(c.Height()))
+	canvas.DrawCursor = cfg.DrawCursor
+	c.(*ClientConn).Canvas = canvas
+
+	for _, enc := range cfg.Encodings {
+		myRenderer, ok := enc.(Renderer)
+
+		if ok {
+			myRenderer.SetTargetImage(canvas)
+		}
+	}
+
 	return nil
 }
 
