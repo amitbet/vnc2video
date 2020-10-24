@@ -5,9 +5,9 @@ import (
 	"image"
 	"image/jpeg"
 	"strings"
-	"github.com/amitbet/vnc2video/logger"
+	log "github.com/sirupsen/logrus"
 
-	"github.com/icza/mjpeg"
+  "github.com/icza/mjpeg"
 )
 
 type MJPegImageEncoder struct {
@@ -30,7 +30,7 @@ func (enc *MJPegImageEncoder) Init(videoFileName string) {
 	}
 	avWriter, err := mjpeg.New(videoFileName, 1024, 768, enc.Framerate)
 	if err != nil {
-		logger.Error("Error during mjpeg init: ", err)
+		log.Error("Error during mjpeg init: ", err)
 	}
 	enc.avWriter = avWriter
 }
@@ -50,14 +50,14 @@ func (enc *MJPegImageEncoder) Encode(img image.Image) {
 	}
 	err := jpeg.Encode(buf, img, jOpts)
 	if err != nil {
-		logger.Error("Error while creating jpeg: ", err)
+		log.Error("Error while creating jpeg: ", err)
 	}
 
 	//logger.Tracef("buff: %v\n", buf.Bytes())
 
 	err = enc.avWriter.AddFrame(buf.Bytes())
 	if err != nil {
-		logger.Error("Error while adding frame to mjpeg: ", err)
+		log.Error("Error while adding frame to mjpeg: ", err)
 	}
 }
 
@@ -66,6 +66,6 @@ func (enc *MJPegImageEncoder) Close() {
 
 	enc.closed = true
 	if err != nil {
-		logger.Error("Error while closing mjpeg: ", err)
+		log.Error("Error while closing mjpeg: ", err)
 	}
 }

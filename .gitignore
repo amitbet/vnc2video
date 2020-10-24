@@ -22,3 +22,4 @@ workspace.xml
 example/client/client
 example/server/server
 example/proxy/proxy
+.idea
