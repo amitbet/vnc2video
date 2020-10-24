@@ -9,9 +9,16 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-
+debug
+ffmpeg
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+.idea/
+workspace.xml
+*.avi
+*.mp4
+*.mov
+*.idx_
 example/client/client
 example/server/server
 example/proxy/proxy

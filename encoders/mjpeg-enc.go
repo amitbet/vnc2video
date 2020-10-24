@@ -6,7 +6,8 @@ import (
 	"image/jpeg"
 	"strings"
 	log "github.com/sirupsen/logrus"
-	"github.com/icza/mjpeg"
+
+  "github.com/icza/mjpeg"
 )
 
 type MJPegImageEncoder struct {
