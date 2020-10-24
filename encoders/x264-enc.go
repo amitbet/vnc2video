@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"github.com/amitbet/vnc2video/logger"
 )
 
@@ -20,12 +19,8 @@ type X264ImageEncoder struct {
 }
 
 func (enc *X264ImageEncoder) Init(videoFileName string) {
-	fileExt := ".mp4"
 	if enc.Framerate == 0 {
 		enc.Framerate = 12
-	}
-	if !strings.HasSuffix(videoFileName, fileExt) {
-		videoFileName = videoFileName + fileExt
 	}
 	//binary := "./ffmpeg"
 	cmd := exec.Command(enc.FFMpegBinPath,
