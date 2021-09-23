@@ -1,6 +1,7 @@
 package encoders
 
 import (
+	"fmt"
 	"image"
 	"io"
 	"os"
@@ -29,7 +30,7 @@ func (enc *DV9ImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "5",
+		"-r", fmt.Sprint(enc.Framerate),
 		//"-i", "pipe:0",
 		"-i", "-",
 		"-vcodec", "libvpx-vp9", //"libvpx",//"libvpx-vp9"//"libx264"

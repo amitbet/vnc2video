@@ -2,6 +2,7 @@ package encoders
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"os"
@@ -33,7 +34,7 @@ func (enc *HuffYuvImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "12",
+		"-r", fmt.Sprint(enc.Framerate),
 
 		//"-re",
 		//"-i", "pipe:0",

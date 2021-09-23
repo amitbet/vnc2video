@@ -1,6 +1,7 @@
 package encoders
 
 import (
+	"fmt"
 	"image"
 	"io"
 	"os"
@@ -31,7 +32,7 @@ func (enc *VP8ImageEncoder) Init(videoFileName string) {
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
 		"-vsync", "2",
-		"-r", "5",
+		"-r", fmt.Sprint(enc.Framerate),
 		"-probesize", "10000000",
 		"-an", //no audio
 		//"-vsync", "2",
