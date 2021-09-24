@@ -25,8 +25,7 @@ func (enc *DV9ImageEncoder) Init(videoFileName string) {
 	if !strings.HasSuffix(videoFileName, fileExt) {
 		videoFileName = videoFileName + fileExt
 	}
-	binary := "./ffmpeg"
-	cmd := exec.Command(binary,
+	cmd := exec.Command(enc.FFMpegBinPath,
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
