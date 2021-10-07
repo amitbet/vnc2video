@@ -3,7 +3,8 @@ package vnc2video
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/amitbet/vnc2video/logger"
+
+	"github.com/matts1/vnc2video/logger"
 )
 
 //var _ draw.Drawer = (*ServerConn)(nil)

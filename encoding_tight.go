@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/amitbet/vnc2video/logger"
+	"github.com/matts1/vnc2video/logger"
 )
 
 //go:generate stringer -type=TightCompression

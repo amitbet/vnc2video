@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"image/color"
 
-	"github.com/amitbet/vnc2video/logger"
+	"github.com/matts1/vnc2video/logger"
 )
 
 type CursorPseudoEncoding struct {
