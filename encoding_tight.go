@@ -399,68 +399,68 @@ func (enc *TightEncoding) drawTightPalette(rect *Rectangle, palette color.Palett
 	})
 }
 func (enc *TightEncoding) decodeGradData(rect *Rectangle, buffer []byte) {
+	enc.AddOp(func(img draw.Image) error {
 
-	prevRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
-	thisRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
+		prevRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
+		thisRow := make([]byte, rect.Width*3+3) //new byte[w * 3];
 
-	bIdx := 0
+		bIdx := 0
 
-	for i := 0; i < int(rect.Height); i++ {
-		for j := 3; j < int(rect.Width*3+3); j += 3 {
-			d := int(0xff&prevRow[j]) + // "upper" pixel (from prev row)
-				int(0xff&thisRow[j-3]) - // prev pixel
-				int(0xff&prevRow[j-3]) // "diagonal" prev pixel
-			if d < 0 {
-				d = 0
+		for i := 0; i < int(rect.Height); i++ {
+			for j := 3; j < int(rect.Width*3+3); j += 3 {
+				d := int(0xff&prevRow[j]) + // "upper" pixel (from prev row)
+					int(0xff&thisRow[j-3]) - // prev pixel
+					int(0xff&prevRow[j-3]) // "diagonal" prev pixel
+				if d < 0 {
+					d = 0
+				}
+				if d > 255 {
+					d = 255
+				}
+				red := int(buffer[bIdx]) + d
+				thisRow[j] = byte(red & 255)
+
+				d = int(0xff&prevRow[j+1]) +
+					int(0xff&thisRow[j+1-3]) -
+					int(0xff&prevRow[j+1-3])
+				if d < 0 {
+					d = 0
+				}
+				if d > 255 {
+					d = 255
+				}
+				green := int(buffer[bIdx+1]) + d
+				thisRow[j+1] = byte(green & 255)
+
+				d = int(0xff&prevRow[j+2]) +
+					int(0xff&thisRow[j+2-3]) -
+					int(0xff&prevRow[j+2-3])
+				if d < 0 {
+					d = 0
+				}
+				if d > 255 {
+					d = 255
+				}
+				blue := int(buffer[bIdx+2]) + d
+				thisRow[j+2] = byte(blue & 255)
+
+				bIdx += 3
 			}
-			if d > 255 {
-				d = 255
-			}
-			red := int(buffer[bIdx]) + d
-			thisRow[j] = byte(red & 255)
 
-			d = int(0xff&prevRow[j+1]) +
-				int(0xff&thisRow[j+1-3]) -
-				int(0xff&prevRow[j+1-3])
-			if d < 0 {
-				d = 0
-			}
-			if d > 255 {
-				d = 255
-			}
-			green := int(buffer[bIdx+1]) + d
-			thisRow[j+1] = byte(green & 255)
-
-			d = int(0xff&prevRow[j+2]) +
-				int(0xff&thisRow[j+2-3]) -
-				int(0xff&prevRow[j+2-3])
-			if d < 0 {
-				d = 0
-			}
-			if d > 255 {
-				d = 255
-			}
-			blue := int(buffer[bIdx+2]) + d
-			thisRow[j+2] = byte(blue & 255)
-
-			bIdx += 3
-		}
-
-		for idx := 3; idx < (len(thisRow) - 3); idx += 3 {
-			myColor := color.RGBA{R: (thisRow[idx]), G: (thisRow[idx+1]), B: (thisRow[idx+2]), A: 1}
-			if !disableGradient {
-				enc.AddOp(func(img draw.Image) error {
+			for idx := 3; idx < (len(thisRow) - 3); idx += 3 {
+				myColor := color.RGBA{R: (thisRow[idx]), G: (thisRow[idx+1]), B: (thisRow[idx+2]), A: 1}
+				if !disableGradient {
 					img.Set(idx/3+int(rect.X)-1, int(rect.Y)+i, myColor)
-					return nil
-				})
+				}
 			}
-		}
 
-		// exchange thisRow and prevRow:
-		tempRow := thisRow
-		thisRow = prevRow
-		prevRow = tempRow
-	}
+			// exchange thisRow and prevRow:
+			tempRow := thisRow
+			thisRow = prevRow
+			prevRow = tempRow
+		}
+		return nil
+	})
 }
 
 func ReadBytes(count int, r io.Reader) ([]byte, error) {
@@ -586,10 +586,10 @@ func readTightLength(c Conn) (int, error) {
  * Draw byte array bitmap data (for Tight)
  */
 func (enc *TightEncoding) drawTightBytes(bytes []byte, rect *Rectangle) {
-	bytesPos := 0
 	logger.Tracef("drawTightBytes: len(bytes)= %d, %v", len(bytes), rect)
 
 	enc.AddOp(func(img draw.Image) error {
+		bytesPos := 0
 		for ly := rect.Y; ly < rect.Y+rect.Height; ly++ {
 			for lx := rect.X; lx < rect.X+rect.Width; lx++ {
 				color := color.RGBA{R: bytes[bytesPos], G: bytes[bytesPos+1], B: bytes[bytesPos+2], A: 1}
