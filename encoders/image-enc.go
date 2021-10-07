@@ -67,7 +67,7 @@ func encodePPMforRGBA(w io.Writer, img *image.RGBA) error {
 	return nil
 }
 
-func encodePPM(w io.Writer, img image.Image) error {
+func EncodePPM(w io.Writer, img image.Image) error {
 	if img == nil {
 		return errors.New("nil image")
 	}

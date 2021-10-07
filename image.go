@@ -3,7 +3,6 @@ package vnc2video
 import (
 	"encoding/binary"
 	"fmt"
-	"image"
 	"github.com/amitbet/vnc2video/logger"
 )
 
@@ -106,23 +105,6 @@ func (clr *Color) Read(c Conn) error {
 		clr.cmIndex = pixel
 	}
 	return nil
-}
-
-func colorsToImage(x, y, width, height uint16, colors []Color) *image.RGBA64 {
-	rect := image.Rect(int(x), int(y), int(x+width), int(y+height))
-	rgba := image.NewRGBA64(rect)
-	a := uint16(1)
-	for i, color := range colors {
-		rgba.Pix[4*i+0] = uint8(color.R >> 8)
-		rgba.Pix[4*i+1] = uint8(color.R)
-		rgba.Pix[4*i+2] = uint8(color.G >> 8)
-		rgba.Pix[4*i+3] = uint8(color.G)
-		rgba.Pix[4*i+4] = uint8(color.B >> 8)
-		rgba.Pix[4*i+5] = uint8(color.B)
-		rgba.Pix[4*i+6] = uint8(a >> 8)
-		rgba.Pix[4*i+7] = uint8(a)
-	}
-	return rgba
 }
 
 // Write marshal rectangle to conn

@@ -125,7 +125,9 @@ func (*FramebufferUpdate) Read(c Conn) (ServerMessage, error) {
 			return nil, err
 		}
 		if rect.EncType == EncDesktopSizePseudo {
-			c.(*ClientConn).ResetAllEncodings()
+			if err := c.(*ClientConn).ResetAllEncodings(); err != nil {
+				return nil, err
+			}
 		}
 		logger.Tracef("----End RECT #%d Info (%dx%d) encType:%s", i, rect.Width, rect.Height, rect.EncType)
 		msg.Rects = append(msg.Rects, rect)
@@ -226,7 +228,7 @@ func (*Bell) Supported(c Conn) bool {
 
 // String return string
 func (*Bell) String() string {
-	return fmt.Sprintf("bell")
+	return "bell"
 }
 
 // Type returns MessageType
@@ -345,7 +347,7 @@ func (msg *SetPixelFormat) Supported(c Conn) bool {
 
 // String returns string
 func (msg *SetPixelFormat) String() string {
-	return fmt.Sprintf("%s", msg.PF)
+	return msg.PF.String()
 }
 
 // Type returns MessageType
@@ -420,7 +422,9 @@ func (*SetEncodings) Read(c Conn) (ClientMessage, error) {
 		}
 		msg.Encodings = append(msg.Encodings, enc)
 	}
-	c.SetEncodings(msg.Encodings)
+	if err := c.SetEncodings(msg.Encodings); err != nil {
+		return nil, err
+	}
 	return &msg, nil
 }
 

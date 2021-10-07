@@ -149,7 +149,6 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 
 	err := secType.Auth(c)
 	if err != nil {
-		logger.Error("Authentication error: ", err)
 		return err
 	}
 
@@ -170,8 +169,7 @@ func (*DefaultClientSecurityHandler) Handle(c Conn) error {
 		}
 		return fmt.Errorf("%s", reasonText)
 	}
-	c.SetSecurityHandler(secType)
-	return nil
+	return c.SetSecurityHandler(secType)
 }
 
 // DefaultServerSecurityHandler used for server security handler
@@ -236,8 +234,7 @@ func (*DefaultServerSecurityHandler) Handle(c Conn) error {
 		if err := c.Flush(); err != nil {
 			return err
 		}
-		c.SetSecurityHandler(sType)
-		return nil
+		return c.SetSecurityHandler(sType)
 	}
 
 	if c.Protocol() == ProtoVersion38 {
@@ -285,16 +282,21 @@ func (*DefaultClientServerInitHandler) Handle(c Conn) error {
 	if c.Protocol() == "aten1" {
 		c.SetWidth(800)
 		c.SetHeight(600)
-		c.SetPixelFormat(NewPixelFormatAten())
+		if err := c.SetPixelFormat(NewPixelFormatAten()); err != nil {
+			return err
+		}
 	} else {
 		c.SetWidth(srvInit.FBWidth)
 		c.SetHeight(srvInit.FBHeight)
 
 		//telling the server to use 32bit pixels (with 24 dept, tight standard format)
 		pixelMsg := SetPixelFormat{PF: PixelFormat32bit}
-		pixelMsg.Write(c)
-		c.SetPixelFormat(PixelFormat32bit)
-		//c.SetPixelFormat(srvInit.PixelFormat)
+		if err := pixelMsg.Write(c); err != nil {
+			return err
+		}
+		if err := c.SetPixelFormat(PixelFormat32bit); err != nil {
+			return err
+		}
 	}
 	if c.Protocol() == "aten1" {
 		ikvm := struct {

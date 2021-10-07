@@ -2,7 +2,6 @@ package vnc2video
 
 import (
 	"bytes"
-	"image"
 	"image/draw"
 	"sync"
 )
@@ -92,32 +91,4 @@ type Encoding interface {
 	Write(Conn, *Rectangle) error
 	Supported(Conn) bool
 	Reset() error
-}
-
-func setBit(n uint8, pos uint8) uint8 {
-	n |= (1 << pos)
-	return n
-}
-
-func clrBit(n uint8, pos uint8) uint8 {
-	n = n &^ (1 << pos)
-	return n
-}
-
-func hasBit(n uint8, pos uint8) bool {
-	v := n & (1 << pos)
-	return (v > 0)
-}
-
-func getBit(n uint8, pos uint8) uint8 {
-	n = n & (1 << pos)
-	return n
-}
-
-func newRGBAImage(rgba []byte, rect *Rectangle) image.Image {
-	img := &image.RGBA{Stride: 4 * int(rect.Width)}
-	img.Pix = rgba
-	img.Rect.Max.X = int(rect.Width)
-	img.Rect.Max.Y = int(rect.Height)
-	return img
 }

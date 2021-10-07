@@ -17,9 +17,6 @@ const (
 
 type VncCanvas struct {
 	draw.Image
-	//DisplayBuff draw.Image
-	//WriteBuff      draw.Image
-	imageBuffs     [2]draw.Image
 	Cursor         draw.Image
 	CursorMask     [][]bool
 	CursorBackup   draw.Image
@@ -203,7 +200,7 @@ func DecodeRaw(reader io.Reader, pf *PixelFormat, rect *Rectangle, targetImage d
 				return err
 			}
 
-			targetImage.(draw.Image).Set(int(rect.X)+x, int(rect.Y)+y, col)
+			targetImage.Set(int(rect.X)+x, int(rect.Y)+y, col)
 		}
 	}
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
 	"github.com/amitbet/vnc2video/logger"
 )
 
@@ -36,7 +37,6 @@ func Connect(ctx context.Context, c net.Conn, cfg *ClientConfig) (*ClientConn, e
 
 	for _, h := range cfg.Handlers {
 		if err := h.Handle(conn); err != nil {
-			logger.Error("Handshake failed, check that server is running: ", err)
 			conn.Close()
 			cfg.ErrorCh <- err
 			return nil, err
@@ -98,12 +98,14 @@ func (c *ClientConn) Flush() error {
 
 // Close closing conn
 func (c *ClientConn) Close() error {
+	// Close the quit channel first so that you get notified of the close
+	// before errors associated with read/write a closed connection.
+	if c.quitCh != nil {
+		close(c.quitCh)
+	}
 	if c.quit != nil {
 		close(c.quit)
 		c.quit = nil
-	}
-	if c.quitCh != nil {
-		close(c.quitCh)
 	}
 	return c.c.Close()
 }
@@ -228,10 +230,13 @@ type ClientConn struct {
 	errorCh chan error
 }
 
-func (cc *ClientConn) ResetAllEncodings() {
+func (cc *ClientConn) ResetAllEncodings() error {
 	for _, enc := range cc.encodings {
-		enc.Reset()
+		if err := enc.Reset(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // NewClientConn creates new client conn using config
@@ -326,14 +331,13 @@ func (*DefaultClientMessageHandler) Handle(c Conn) error {
 		v = append(v, value)
 	}
 	logger.Tracef("setting encodings: %v", v)
-	c.SetEncodings(v)
+	if err := c.SetEncodings(v); err != nil {
+		return err
+	}
 
 	firstMsg := FramebufferUpdateRequest{Inc: 0, X: 0, Y: 0, Width: c.Width(), Height: c.Height()}
 	logger.Tracef("sending initial req message: %v", firstMsg)
-	firstMsg.Write(c)
-
-	//wg.Wait()
-	return nil
+	return firstMsg.Write(c)
 }
 
 // A ClientConfig structure is used to configure a ClientConn. After
@@ -351,5 +355,4 @@ type ClientConfig struct {
 	Messages         []ServerMessage
 	QuitCh           chan struct{}
 	ErrorCh          chan error
-	quit             chan struct{}
 }
