@@ -3,6 +3,7 @@ package encoders
 import (
 	"errors"
 	"image"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -32,7 +33,7 @@ func (enc *QTRLEImageEncoder) Init(videoFileName string) {
 		"-f", "image2pipe",
 		"-vcodec", "ppm",
 		//"-r", strconv.Itoa(framerate),
-		"-r", "12",
+		"-r", fmt.Sprint(enc.Framerate),
 
 		//"-re",
 		//"-i", "pipe:0",
