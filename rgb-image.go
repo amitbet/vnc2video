@@ -21,7 +21,7 @@ type RGBColor struct {
 }
 
 func (c RGBColor) RGBA() (r, g, b, a uint32) {
-	return uint32(c.R), uint32(c.G), uint32(c.B), 1
+	return uint32(c.R), uint32(c.G), uint32(c.B), 0xff
 }
 
 func (p *RGBImage) ColorModel() color.Model { return nil }
@@ -30,7 +30,7 @@ func (p *RGBImage) Bounds() image.Rectangle { return p.Rect }
 
 func (p *RGBImage) At(x, y int) color.Color {
 	col := p.RGBAt(x, y)
-	return color.RGBA{col.R, col.G, col.B, 1}
+	return color.RGBA{col.R, col.G, col.B, 0xff}
 }
 
 func (p *RGBImage) RGBAt(x, y int) *RGBColor {
