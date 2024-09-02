@@ -11,6 +11,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"io"
+
 	"github.com/amitbet/vnc2video/logger"
 )
 
@@ -532,7 +533,7 @@ func (enc *TightEncoding) readTightPalette(connReader Conn, bytesPixel int) (col
 		return nil, err
 	}
 
-	paletteSize := colorCount + 1 // add one more
+	paletteSize := int(colorCount) + 1 // add one more
 	//logger.Tracef("----PALETTE_FILTER: paletteSize=%d bytesPixel=%d\n", paletteSize, bytesPixel)
 	//complete palette
 	paletteColorBytes, err := ReadBytes(int(paletteSize)*bytesPixel, connReader)
